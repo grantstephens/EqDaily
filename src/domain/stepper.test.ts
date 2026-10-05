@@ -1,4 +1,4 @@
-import { scaleStep, stepTime, stepValue } from './stepper';
+import { scaleStart, scaleStep, stepTime, stepValue } from './stepper';
 
 const opts = { min: 0, max: 10, step: 1, start: 5, decimals: 0 };
 
@@ -33,4 +33,14 @@ describe('stepTime', () => {
     expect(stepTime('23:50', 15)).toBe('00:05');
     expect(stepTime('00:05', -15)).toBe('23:50');
   });
+});
+
+describe('scaleStart', () => {
+  test('midpoint when it is on the grid', () => { expect(scaleStart({ min: 0, max: 10 })).toBe(5); });
+  test('snaps an off-grid midpoint onto the step grid from min', () => {
+    expect(scaleStart({ min: 1, max: 10 })).toBe(6);
+    expect(Number.isInteger(scaleStart({ min: 1, max: 10 }))).toBe(true);
+  });
+  test('honours a configured step', () => { expect(scaleStart({ min: 0, max: 1, step: 0.25 })).toBe(0.5); });
+  test('never leaves the range', () => { expect(scaleStart({ min: 0, max: 1, step: 5 })).toBeLessThanOrEqual(1); });
 });

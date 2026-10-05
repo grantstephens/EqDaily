@@ -7,6 +7,8 @@ interface Props {
   min: number;
   max: number;
   step: number;
+  /** Where an unanswered slider lands on its first accessibility adjustment. */
+  start?: number;
   onChange: (value: number) => void;
   testID?: string;
 }
@@ -18,7 +20,7 @@ const THUMB = 22;
  * in-house to avoid a native slider dependency. Exposes adjustable
  * accessibility actions so it is usable without touch.
  */
-export function Slider({ value, min, max, step, onChange, testID }: Props) {
+export function Slider({ value, min, max, step, start, onChange, testID }: Props) {
   const theme = useTheme();
   const [width, setWidth] = useState(0);
   const latest = useRef({ width, min, max, step, onChange });
@@ -43,8 +45,8 @@ export function Slider({ value, min, max, step, onChange, testID }: Props) {
 
   const ratio = value === null ? 0 : (value - min) / (max - min);
   const adjust = (dir: 1 | -1) => {
-    const base = value ?? (min + max) / 2;
-    onChange(Number(Math.min(max, Math.max(min, base + dir * step)).toFixed(6)));
+    if (value === null) return onChange(start ?? (min + max) / 2);
+    onChange(Number(Math.min(max, Math.max(min, value + dir * step)).toFixed(6)));
   };
 
   return (

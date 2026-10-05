@@ -25,3 +25,14 @@ export function scaleStep(c: ScaleConfig): number {
 export function stepTime(current: string | null, delta: number): string {
   return minutesToTime(timeToMinutes(current ?? '22:00') + delta);
 }
+
+/**
+ * scaleStart is where an unanswered slider first lands: the midpoint snapped
+ * onto the step grid anchored at min, so a 1-10 whole-number scale never
+ * stores 5.5.
+ */
+export function scaleStart(c: ScaleConfig): number {
+  const step = scaleStep(c);
+  const snapped = c.min + Math.round((c.max - c.min) / 2 / step) * step;
+  return Number(Math.min(c.max, Math.max(c.min, snapped)).toFixed(6));
+}

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { TextInput } from 'react-native-paper';
 
-import type { Question } from '../../domain/question';
+import { MAX_TEXT, type Question } from '../../domain/question';
 
 type Props = {
   question: Extract<Question, { type: 'text' }>;
@@ -55,6 +55,7 @@ export function TextAnswerInput({ question, value, onChange }: Props) {
       testID="text-input"
       mode="outlined"
       multiline={question.config.multiline}
+      maxLength={MAX_TEXT}
       value={draft}
       onChangeText={change}
       onBlur={commit}

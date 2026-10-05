@@ -147,3 +147,18 @@ describe('midnight', () => {
     expect(screen.getByText('Sun 4 Oct 2026')).toBeTruthy();
   });
 });
+
+describe('pending text edit when changing day', () => {
+  test('a draft typed on one day is saved to that day, never the day navigated to', async () => {
+    const note: NewQuestion = { label: 'Thankful', type: 'text', config: { multiline: false, showFrequent: false }, hideFromInsights: false };
+    const h = await open(async (x) => {
+      const q = await x.store.addQuestion(note);
+      await x.store.setAnswer('2026-10-04', q.id, 'existing yesterday');
+    });
+    await fireEvent.changeText(await screen.findByTestId('text-input'), 'typed on the 5th');
+    await fireEvent.press(screen.getByTestId('date-prev'));
+    await screen.findByText('Sun 4 Oct 2026');
+    await waitFor(async () => expect((await h.store.getAnswers('2026-10-05')).map((a) => a.value)).toEqual(['typed on the 5th']));
+    expect((await h.store.getAnswers('2026-10-04')).map((a) => a.value)).toEqual(['existing yesterday']);
+  });
+});

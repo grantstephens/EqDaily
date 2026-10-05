@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 
 import type { Question } from '../../domain/question';
-import { scaleStep, stepValue } from '../../domain/stepper';
+import { scaleStart, scaleStep, stepValue } from '../../domain/stepper';
 import { Slider } from './Slider';
 
 type Props = {
@@ -15,14 +15,14 @@ type Props = {
 export function ScaleInput({ question, value, onChange }: Props) {
   const { min, max } = question.config;
   const step = scaleStep(question.config);
-  const opts = { min, max, step, start: (min + max) / 2, decimals: 4 };
+  const opts = { min, max, step, start: scaleStart(question.config), decimals: 4 };
   const readout = value === null ? '—' : String(Number(value.toFixed(2)));
   return (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Button testID="scale-minus" accessibilityLabel="Decrease" compact mode="outlined" onPress={() => onChange(stepValue(value, -1, opts))}>−</Button>
         <View style={{ flex: 1 }}>
-          <Slider testID="scale-slider" value={value} min={min} max={max} step={step} onChange={onChange} />
+          <Slider testID="scale-slider" value={value} min={min} max={max} step={step} start={opts.start} onChange={onChange} />
         </View>
         <Button testID="scale-plus" accessibilityLabel="Increase" compact mode="outlined" onPress={() => onChange(stepValue(value, 1, opts))}>+</Button>
       </View>

@@ -20,10 +20,15 @@ export function NumberInput({ question, value, onChange }: Props) {
   useEffect(() => setDraft(value === null ? '' : String(value)), [value]);
 
   const commit = () => {
-    const n = Number(draft.trim().replace(',', '.'));
-    if (draft.trim() === '' || !Number.isFinite(n)) {
-      setDraft(value === null ? '' : String(value));
+    // Only an emptied field means "skip". Text that does not parse ("-", "1e")
+    // is a typo: revert it, and leave the saved answer alone.
+    if (draft.trim() === '') {
       if (value !== null) onChange(null);
+      return;
+    }
+    const n = Number(draft.trim().replace(',', '.'));
+    if (!Number.isFinite(n)) {
+      setDraft(value === null ? '' : String(value));
       return;
     }
     const f = 10 ** decimals;

@@ -78,14 +78,18 @@ export function TodayScreen() {
     if (wasToday && t !== dateRef.current) setDate(t);
   }), [now]);
 
-  const save = async (q: Question, value: AnswerValue | null) => {
-    const d = dateRef.current;
-    setAnswers((prev) => {
-      const next = new Map(prev);
-      if (value === null) next.delete(q.id);
-      else next.set(q.id, value);
-      return next;
-    });
+  // d is the day the card was rendered for, captured at render time. A pending
+  // text draft flushes during unmount, after dateRef has already moved on; reading
+  // the ref here would write it into the day being navigated to.
+  const save = async (d: JournalDate, q: Question, value: AnswerValue | null) => {
+    if (dateRef.current === d) {
+      setAnswers((prev) => {
+        const next = new Map(prev);
+        if (value === null) next.delete(q.id);
+        else next.set(q.id, value);
+        return next;
+      });
+    }
     try {
       await store.setAnswer(d, q.id, value);
       if (usesOptions(q)) {
@@ -124,7 +128,7 @@ export function TodayScreen() {
             <AnswerInput
               question={q}
               value={answers.get(q.id) ?? null}
-              onChange={(v) => save(q, v)}
+              onChange={(v) => save(date, q, v)}
               optionUsage={usage[q.id] ?? []}
             />
           </Card.Content>

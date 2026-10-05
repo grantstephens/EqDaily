@@ -61,6 +61,19 @@ describe('scale', () => {
   });
 });
 
+describe('scale start value', () => {
+  test('first + on an integer 1-10 scale lands on a whole number', async () => {
+    const onChange = await show(scaleQ(1, 10), null);
+    await press('scale-plus');
+    expect(Number.isInteger(onChange.mock.calls[0][0])).toBe(true);
+  });
+  test('accessibility increment from null also lands on the step grid', async () => {
+    const onChange = await show(scaleQ(1, 10), null);
+    await fireEvent(screen.getByTestId('scale-slider'), 'accessibilityAction', { nativeEvent: { actionName: 'increment' } });
+    expect(Number.isInteger(onChange.mock.calls[0][0])).toBe(true);
+  });
+});
+
 describe('number', () => {
   test('+ from null starts at max(min,0)', async () => {
     const onChange = await show(numberQ({ min: 2 }), null);
@@ -72,11 +85,18 @@ describe('number', () => {
     await press('number-plus');
     expect(onChange).toHaveBeenCalledWith(0.3);
   });
-  test('typing abc then blur emits null', async () => {
+  test('clearing the field then blur emits null (skip)', async () => {
     const onChange = await show(numberQ(), 3);
-    await fireEvent.changeText(screen.getByTestId('number-input'), 'abc');
+    await fireEvent.changeText(screen.getByTestId('number-input'), '');
     await fireEvent(screen.getByTestId('number-input'), 'blur');
     expect(onChange).toHaveBeenCalledWith(null);
+  });
+  test('unparseable text then blur reverts and does NOT delete the saved answer', async () => {
+    const onChange = await show(numberQ(), 3);
+    await fireEvent.changeText(screen.getByTestId('number-input'), '-');
+    await fireEvent(screen.getByTestId('number-input'), 'blur');
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByTestId('number-input').props.value).toBe('3');
   });
   test('typing 3 then blur emits 3', async () => {
     const onChange = await show(numberQ(), null);
@@ -146,6 +166,10 @@ describe('text', () => {
     await fireEvent.changeText(screen.getByTestId('text-input'), '');
     await fireEvent(screen.getByTestId('text-input'), 'blur');
     expect(onChange).toHaveBeenCalledWith(null);
+  });
+  test('input is capped at the stored-answer limit so long text is never silently discarded', async () => {
+    await show(textQ(), null);
+    expect(screen.getByTestId('text-input').props.maxLength).toBe(5000);
   });
   test('blur on an untouched empty field emits nothing', async () => {
     const onChange = await show(textQ(), null);
