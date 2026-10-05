@@ -1,0 +1,299 @@
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import React from 'react';
+
+import type { Question } from '../../domain/question';
+import { AnswerInput } from './AnswerInput';
+
+const base = { hideFromInsights: false, sort: 0, archivedAt: null, created: 'T' };
+const scaleQ = (min = 0, max = 10, step?: number): Question =>
+  ({ ...base, id: 1, label: 'Mood', type: 'scale', config: { min, max, step } });
+const numberQ = (config: object = {}): Question =>
+  ({ ...base, id: 2, label: 'Meals', type: 'number', config: { decimals: 0, ...config } });
+const yesnoQ: Question = { ...base, id: 3, label: 'Exercise', type: 'yesno', config: {} as never };
+const textQ = (multiline = false): Question =>
+  ({ ...base, id: 4, label: 'Thx', type: 'text', config: { multiline, showFrequent: false } });
+const checksQ = (options = ['Headache', 'Asthma'], allowOther = true): Question =>
+  ({ ...base, id: 5, label: 'Sym', type: 'checkboxes', config: { options, allowOther } });
+const choiceQ = (allowOther = true): Question =>
+  ({ ...base, id: 6, label: 'Energy', type: 'choice', config: { options: ['Low', 'High'], allowOther } });
+const timeQ: Question = { ...base, id: 7, label: 'Bed', type: 'time', config: {} as never };
+
+async function show(question: Question, value: any, usage: { option: string; count: number }[] = []) {
+  const onChange = jest.fn();
+  await render(<AnswerInput question={question} value={value} onChange={onChange} optionUsage={usage} />);
+  return onChange;
+}
+const press = (id: string) => fireEvent.press(screen.getByTestId(id));
+
+describe('scale', () => {
+  test('+ from null emits the midpoint of a 0-10 scale', async () => {
+    const onChange = await show(scaleQ(0, 10), null);
+    await press('scale-plus');
+    expect(onChange).toHaveBeenCalledWith(5);
+  });
+  test('- at min stays at min', async () => {
+    const onChange = await show(scaleQ(0, 10), 0);
+    await press('scale-minus');
+    expect(onChange).toHaveBeenCalledWith(0);
+  });
+  test('+ steps by the scale step', async () => {
+    const onChange = await show(scaleQ(0, 10, 0.5), 3);
+    await press('scale-plus');
+    expect(onChange).toHaveBeenCalledWith(3.5);
+  });
+  test('Skip only shows with a value and emits null', async () => {
+    const onChange = await show(scaleQ(), 4);
+    await press('scale-skip');
+    expect(onChange).toHaveBeenCalledWith(null);
+  });
+  test('no Skip when unanswered', async () => {
+    await show(scaleQ(), null);
+    expect(screen.queryByTestId('scale-skip')).toBeNull();
+  });
+  test('accessibility increment action on the slider steps up', async () => {
+    const onChange = await show(scaleQ(0, 10), 3);
+    await fireEvent(screen.getByTestId('scale-slider'), 'accessibilityAction', { nativeEvent: { actionName: 'increment' } });
+    expect(onChange).toHaveBeenCalledWith(4);
+  });
+  test('shows a dash when unanswered and the value when answered', async () => {
+    await show(scaleQ(), null);
+    expect(screen.getByTestId('scale-readout')).toHaveTextContent('—');
+  });
+});
+
+describe('scale start value', () => {
+  test('first + on an integer 1-10 scale lands on a whole number', async () => {
+    const onChange = await show(scaleQ(1, 10), null);
+    await press('scale-plus');
+    expect(Number.isInteger(onChange.mock.calls[0][0])).toBe(true);
+  });
+  test('accessibility increment from null also lands on the step grid', async () => {
+    const onChange = await show(scaleQ(1, 10), null);
+    await fireEvent(screen.getByTestId('scale-slider'), 'accessibilityAction', { nativeEvent: { actionName: 'increment' } });
+    expect(Number.isInteger(onChange.mock.calls[0][0])).toBe(true);
+  });
+});
+
+describe('number', () => {
+  test('+ from null starts at max(min,0)', async () => {
+    const onChange = await show(numberQ({ min: 2 }), null);
+    await press('number-plus');
+    expect(onChange).toHaveBeenCalledWith(2);
+  });
+  test('decimals=1 steppers emit tenths without float noise', async () => {
+    const onChange = await show(numberQ({ decimals: 1 }), 0.2);
+    await press('number-plus');
+    expect(onChange).toHaveBeenCalledWith(0.3);
+  });
+  test('clearing the field then blur emits null (skip)', async () => {
+    const onChange = await show(numberQ(), 3);
+    await fireEvent.changeText(screen.getByTestId('number-input'), '');
+    await fireEvent(screen.getByTestId('number-input'), 'blur');
+    expect(onChange).toHaveBeenCalledWith(null);
+  });
+  test('unparseable text then blur reverts and does NOT delete the saved answer', async () => {
+    const onChange = await show(numberQ(), 3);
+    await fireEvent.changeText(screen.getByTestId('number-input'), '-');
+    await fireEvent(screen.getByTestId('number-input'), 'blur');
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByTestId('number-input').props.value).toBe('3');
+  });
+  test('typing 3 then blur emits 3', async () => {
+    const onChange = await show(numberQ(), null);
+    await fireEvent.changeText(screen.getByTestId('number-input'), '3');
+    await fireEvent(screen.getByTestId('number-input'), 'blur');
+    expect(onChange).toHaveBeenCalledWith(3);
+  });
+  test('clamped at max', async () => {
+    const onChange = await show(numberQ({ max: 5 }), 5);
+    await press('number-plus');
+    expect(onChange).toHaveBeenCalledWith(5);
+  });
+  test('typed values are clamped to the range', async () => {
+    const onChange = await show(numberQ({ max: 5 }), null);
+    await fireEvent.changeText(screen.getByTestId('number-input'), '9');
+    await fireEvent(screen.getByTestId('number-input'), 'blur');
+    expect(onChange).toHaveBeenCalledWith(5);
+  });
+  test('shows the unit', async () => {
+    await show(numberQ({ unit: 'meals' }), 2);
+    expect(screen.getByText('meals')).toBeTruthy();
+  });
+});
+
+describe('yes/no', () => {
+  test('Yes emits true, No emits false', async () => {
+    const onChange = await show(yesnoQ, null);
+    await press('yesno-yes');
+    expect(onChange).toHaveBeenLastCalledWith(true);
+    await press('yesno-no');
+    expect(onChange).toHaveBeenLastCalledWith(false);
+  });
+  test('Skip emits null when answered', async () => {
+    const onChange = await show(yesnoQ, true);
+    await press('yesno-skip');
+    expect(onChange).toHaveBeenCalledWith(null);
+  });
+  test('pressing the already-selected answer emits nothing', async () => {
+    const onChange = await show(yesnoQ, true);
+    await press('yesno-yes');
+    expect(onChange).not.toHaveBeenCalled();
+  });
+});
+
+describe('text', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  test('typing then 800ms emits once with the text', async () => {
+    const onChange = await show(textQ(), null);
+    await fireEvent.changeText(screen.getByTestId('text-input'), 'hello');
+    expect(onChange).not.toHaveBeenCalled();
+    await act(async () => { jest.advanceTimersByTime(800); });
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith('hello');
+  });
+  test('blur emits immediately and the timer does not double-emit', async () => {
+    const onChange = await show(textQ(), null);
+    await fireEvent.changeText(screen.getByTestId('text-input'), 'hello');
+    await fireEvent(screen.getByTestId('text-input'), 'blur');
+    expect(onChange).toHaveBeenCalledTimes(1);
+    await act(async () => { jest.advanceTimersByTime(2000); });
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+  test('clearing emits null', async () => {
+    const onChange = await show(textQ(), 'old');
+    await fireEvent.changeText(screen.getByTestId('text-input'), '');
+    await fireEvent(screen.getByTestId('text-input'), 'blur');
+    expect(onChange).toHaveBeenCalledWith(null);
+  });
+  test('input is capped at the stored-answer limit so long text is never silently discarded', async () => {
+    await show(textQ(), null);
+    expect(screen.getByTestId('text-input').props.maxLength).toBe(5000);
+  });
+  test('blur on an untouched empty field emits nothing', async () => {
+    const onChange = await show(textQ(), null);
+    await fireEvent(screen.getByTestId('text-input'), 'blur');
+    expect(onChange).not.toHaveBeenCalled();
+  });
+  test('unmounting with a pending edit flushes it', async () => {
+    const onChange = jest.fn();
+    const { unmount } = await render(<AnswerInput question={textQ()} value={null} onChange={onChange} optionUsage={[]} />);
+    await fireEvent.changeText(screen.getByTestId('text-input'), 'draft');
+    await unmount();
+    expect(onChange).toHaveBeenCalledWith('draft');
+  });
+  test('draft follows an external value change (date switch)', async () => {
+    const onChange = jest.fn();
+    const { rerender } = await render(<AnswerInput question={textQ()} value="one" onChange={onChange} optionUsage={[]} />);
+    await rerender(<AnswerInput question={textQ()} value="two" onChange={onChange} optionUsage={[]} />);
+    expect(screen.getByTestId('text-input').props.value).toBe('two');
+  });
+});
+
+describe('checkboxes', () => {
+  test('pressing a chip adds it', async () => {
+    const onChange = await show(checksQ(), ['Headache']);
+    await press('chip-Asthma');
+    expect(onChange).toHaveBeenCalledWith(['Headache', 'Asthma']);
+  });
+  test('unselecting the only one emits [] (an answer: none), not null', async () => {
+    const onChange = await show(checksQ(), ['Headache']);
+    await press('chip-Headache');
+    expect(onChange).toHaveBeenCalledWith([]);
+  });
+  test('None emits []', async () => {
+    const onChange = await show(checksQ(), null);
+    await press('chip-none');
+    expect(onChange).toHaveBeenCalledWith([]);
+  });
+  test('Skip emits null', async () => {
+    const onChange = await show(checksQ(), ['Headache']);
+    await press('checks-skip');
+    expect(onChange).toHaveBeenCalledWith(null);
+  });
+  test('Other adds a trimmed custom value to the selection', async () => {
+    const onChange = await show(checksQ(), ['Headache']);
+    await fireEvent.changeText(screen.getByTestId('other-input'), '  Wheezy ');
+    await press('other-add');
+    expect(onChange).toHaveBeenCalledWith(['Headache', 'Wheezy']);
+  });
+  test.each([['a|b'], ['   ']])('Other rejects %j with a message and emits nothing', async (bad) => {
+    const onChange = await show(checksQ(), []);
+    await fireEvent.changeText(screen.getByTestId('other-input'), bad);
+    await press('other-add');
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByTestId('other-error')).toBeTruthy();
+  });
+  test('allowOther=false hides the Other row', async () => {
+    await show(checksQ(['a'], false), null);
+    expect(screen.queryByTestId('other-input')).toBeNull();
+  });
+  test('only 8 chips show for 12 options; More reveals the rest', async () => {
+    const opts = Array.from({ length: 12 }, (_, i) => `o${i}`);
+    await show(checksQ(opts), null);
+    expect(screen.queryByTestId('chip-o8')).toBeNull();
+    expect(screen.getByTestId('chip-o7')).toBeTruthy();
+    await press('chip-more');
+    expect(screen.getByTestId('chip-o11')).toBeTruthy();
+  });
+  test('usage reorders chips most-used first', async () => {
+    await show(checksQ(['a', 'b', 'c']), null, [{ option: 'c', count: 9 }]);
+    const ids = screen.getAllByTestId(/^chip-[abc]$/).map((n) => n.props.testID);
+    expect(ids).toEqual(['chip-c', 'chip-a', 'chip-b']);
+  });
+  test('a selected value not in the option list is still shown selected', async () => {
+    await show(checksQ(), ['Removed option']);
+    expect(screen.getByTestId('chip-Removed option')).toBeTruthy();
+  });
+});
+
+describe('choice', () => {
+  test('pressing a chip selects it', async () => {
+    const onChange = await show(choiceQ(), null);
+    await press('chip-Low');
+    expect(onChange).toHaveBeenCalledWith('Low');
+  });
+  test('pressing the selected chip clears to null', async () => {
+    const onChange = await show(choiceQ(), 'Low');
+    await press('chip-Low');
+    expect(onChange).toHaveBeenCalledWith(null);
+  });
+  test('Other adds a custom value', async () => {
+    const onChange = await show(choiceQ(), null);
+    await fireEvent.changeText(screen.getByTestId('other-input'), 'Wired');
+    await press('other-add');
+    expect(onChange).toHaveBeenCalledWith('Wired');
+  });
+});
+
+describe('time', () => {
+  test('7:05 then blur emits 07:05', async () => {
+    const onChange = await show(timeQ, null);
+    await fireEvent.changeText(screen.getByTestId('time-input'), '7:05');
+    await fireEvent(screen.getByTestId('time-input'), 'blur');
+    expect(onChange).toHaveBeenCalledWith('07:05');
+  });
+  test('25:00 emits nothing and reverts the text', async () => {
+    const onChange = await show(timeQ, '08:00');
+    await fireEvent.changeText(screen.getByTestId('time-input'), '25:00');
+    await fireEvent(screen.getByTestId('time-input'), 'blur');
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByTestId('time-input').props.value).toBe('08:00');
+  });
+  test('+15 wraps past midnight', async () => {
+    const onChange = await show(timeQ, '23:50');
+    await press('time-plus');
+    expect(onChange).toHaveBeenCalledWith('00:05');
+  });
+  test('+15 from null starts at 22:15', async () => {
+    const onChange = await show(timeQ, null);
+    await press('time-plus');
+    expect(onChange).toHaveBeenCalledWith('22:15');
+  });
+  test('Skip emits null', async () => {
+    const onChange = await show(timeQ, '08:00');
+    await press('time-skip');
+    expect(onChange).toHaveBeenCalledWith(null);
+  });
+});
