@@ -11,3 +11,10 @@
  * the tab/window is hidden or closed (web). Returns an unsubscribe function.
  */
 export declare function onAppHidden(callback: () => void): () => void;
+
+/**
+ * onAppVisible calls `callback` when the app returns to the foreground
+ * (native) or the tab/window becomes visible (web). Returns an unsubscribe
+ * function. Used so a screen left open overnight notices the date moved on.
+ */
+export declare function onAppVisible(callback: () => void): () => void;
