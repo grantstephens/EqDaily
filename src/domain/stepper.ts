@@ -1,0 +1,27 @@
+import type { ScaleConfig } from './question';
+import { minutesToTime, timeToMinutes } from './time';
+
+export interface StepOptions { min: number; max: number; step: number; start: number; decimals: number }
+
+/**
+ * stepValue moves a value one step up (dir 1) or down (-1), clamped. From an
+ * unanswered state the first press just sets the start value: pressing "+" on
+ * nothing should land somewhere sensible, not at start+step.
+ */
+export function stepValue(current: number | null, dir: 1 | -1, o: StepOptions): number {
+  if (current === null) return o.start;
+  const f = 10 ** o.decimals;
+  const next = Math.round((current + dir * o.step) * f) / f;
+  return Math.min(o.max, Math.max(o.min, next));
+}
+
+/** scaleStep is the +/- step: the configured one, else whole numbers or tenths. */
+export function scaleStep(c: ScaleConfig): number {
+  if (c.step !== undefined) return c.step;
+  return c.max - c.min >= 5 ? 1 : (c.max - c.min) / 10;
+}
+
+/** stepTime moves an HH:MM by delta minutes, wrapping; from null it starts at 22:00. */
+export function stepTime(current: string | null, delta: number): string {
+  return minutesToTime(timeToMinutes(current ?? '22:00') + delta);
+}
