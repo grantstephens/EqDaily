@@ -7,7 +7,7 @@ import {
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
@@ -139,7 +139,13 @@ function Tabs() {
         headerShown: false,
         tabBarActiveTintColor: theme.colors.onSecondaryContainer,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
-        tabBarStyle: { backgroundColor: theme.colors.elevation.level2, borderTopWidth: 0 },
+        // On web the bar defaults to 49px, which clips the label under the taller icon pill.
+        // Native keeps its default so react-navigation can add the bottom safe-area inset.
+        tabBarStyle: {
+          backgroundColor: theme.colors.elevation.level2,
+          borderTopWidth: 0,
+          ...(Platform.OS === 'web' ? { height: 64 } : null),
+        },
         tabBarLabelStyle: theme.fonts.labelMedium,
         // The tab item reserves only 24x24 for its icon, so the pill needs a bigger reserved box.
         tabBarIconStyle: styles.tabIconSlot,
