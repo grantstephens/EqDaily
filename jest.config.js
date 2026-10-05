@@ -16,7 +16,10 @@ module.exports = {
     {
       displayName: 'logic',
       testEnvironment: 'node',
-      testMatch: ['<rootDir>/src/(domain|storage|csv|platform)/**/*.test.ts'],
+      testMatch: [
+        '<rootDir>/src/(domain|storage|csv|platform)/**/*.test.ts',
+        '<rootDir>/src/components/charts/**/*.test.ts',
+      ],
       transform: {
         '^.+\\.tsx?$': ['babel-jest', { presets: ['babel-preset-expo'] }],
       },
