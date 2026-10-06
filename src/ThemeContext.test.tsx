@@ -113,3 +113,19 @@ test('on web, always resolves to the light theme regardless of system scheme or 
   // The native-only persistence layer is never touched on web.
   expect(getThemeMode).not.toHaveBeenCalled();
 });
+
+test('resolves to the EqDaily palette in both modes, on web too', async () => {
+  let latest: ReturnType<typeof useTheme> | null = null;
+  await render(
+    <ThemeProvider>
+      <Probe onReady={(v) => { latest = v; }} />
+    </ThemeProvider>,
+  );
+  await waitFor(() => expect(latest).not.toBeNull());
+  expect(latest!.theme.colors.primary).toBe('#4326D9');
+  expect(latest!.theme.colors.tertiaryContainer).toBe('#FFDEA1');
+
+  await act(async () => { latest!.setMode('dark'); });
+  await waitFor(() => expect(screen.getByTestId('dark').props.children).toBe('true'));
+  expect(latest!.theme.colors.tertiary).toBe('#FFC83D');
+});

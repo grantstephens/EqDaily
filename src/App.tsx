@@ -11,8 +11,6 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
-  MD3DarkTheme,
-  MD3LightTheme,
   Text,
   adaptNavigationTheme,
 } from 'react-native-paper';
@@ -24,17 +22,17 @@ import { TodayScreen } from './screens/Today';
 import { openStore } from './storage/openStore';
 import { ThemeProvider, useTheme } from './ThemeContext';
 import { TrackerProvider } from './TrackerContext';
-import type { Theme } from './theme';
+import { DarkTheme, LightTheme, type Theme } from './theme';
 
 /**
- * Paper's MD3 palettes adapted to react-navigation's Theme shape, so the
+ * Paper's themes (with EqDaily's palette) adapted to react-navigation's Theme shape, so the
  * navigator's chrome matches the Material palette everything else uses.
  */
 const { LightTheme: NavLightTheme, DarkTheme: NavDarkTheme } = adaptNavigationTheme({
   reactNavigationLight: NavigationDefaultTheme,
   reactNavigationDark: NavigationDarkTheme,
-  materialLight: MD3LightTheme,
-  materialDark: MD3DarkTheme,
+  materialLight: LightTheme,
+  materialDark: DarkTheme,
 });
 
 export type TabName = 'Today' | 'Insights' | 'Settings';

@@ -35,7 +35,11 @@ export function LineChart({ points, dates, axisMin, axisMax, height = 120, yLabe
             <Svg width={width} height={height}>
               {segments(points, dates).map((run, i) =>
                 run.length > 1 ? <Path key={i} d={linePath(scaled(run))} stroke={color} strokeWidth={2} fill="none" /> : null)}
-              {scaled(points).map((p, i) => <Circle key={i} cx={p.x} cy={p.y} r={3.5} fill={color} />)}
+              {/* the newest point is picked out in the accent, like the dot on the logo's graph tail */}
+              {scaled(points).map((p, i, all) => (
+                <Circle key={i} cx={p.x} cy={p.y} r={i === all.length - 1 ? 5 : 3.5}
+                  fill={i === all.length - 1 ? theme.colors.tertiary : color} />
+              ))}
             </Svg>
           )}
         </View>
