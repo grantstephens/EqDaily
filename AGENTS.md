@@ -75,3 +75,23 @@ Layered, dependencies pointing inward. Only `App.tsx` imports from `src/screens`
 - Screen tests that render Settings need `ThemeProvider` (it calls `useTheme`).
 - Install dependencies with `npm ci` from the lockfile; plain `npm install` hits an
   `ERESOLVE` on `@react-native/jest-preset`.
+
+## Assets
+
+The icon is an "Eq" monogram built from plain geometry (rects, a ring, a polyline — no fonts to
+outline): a white capital E and lowercase q on vivid indigo (`#4326D9`), with the q's descender
+turning into an amber rising line graph. `assets/icon.svg` is the full-bleed source;
+`icon-foreground.svg` (transparent) and `icon-monochrome.svg` are the Android adaptive layers —
+the background is a flat `backgroundColor` in `app.json`, not an image. Keep the mark inside the
+central ~60% so the adaptive-icon crop never clips it.
+
+Regenerate every raster after changing an SVG:
+
+```bash
+cd assets
+rsvg-convert -w 1024 -h 1024 icon.svg -o icon.png
+rsvg-convert -w 1024 -h 1024 icon-foreground.svg -o splash-icon.png
+rsvg-convert -w 1024 -h 1024 icon-foreground.svg -o android-icon-foreground.png
+rsvg-convert -w 1024 -h 1024 icon-monochrome.svg -o android-icon-monochrome.png
+rsvg-convert -w 48 -h 48 icon.svg -o favicon.png
+```
