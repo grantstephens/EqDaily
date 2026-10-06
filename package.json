@@ -43,5 +43,6 @@
     "jest": "~30.5.1",
     "jest-expo": "~57.0.4",
     "typescript": "~7.0.2"
-  }
+  },
+  "license": "GPL-3.0-or-later"
 }

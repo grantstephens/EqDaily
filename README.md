@@ -99,3 +99,8 @@ gh secret set ANDROID_KEY_PASSWORD        # same value (PKCS12 uses one password
 gh secret set ANDROID_KEY_ALIAS           # eqdaily
 ```
 (`keytool -genkeypair -keystore eqdaily.keystore -storetype PKCS12 -alias eqdaily …` works too.)
+
+## Licence
+
+[GPL-3.0-or-later](LICENSE). If you distribute a modified version, you must publish your
+changes under the same licence.
