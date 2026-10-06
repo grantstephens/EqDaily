@@ -3,12 +3,12 @@ import { ScrollView, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Text } from 'react-native-paper';
 
 import { AnswerInput } from '../components/inputs/AnswerInput';
-import { addDays, displayDate, today, type JournalDate } from '../domain/date';
+import { addDays, displayDate, type JournalDate } from '../domain/date';
 import type { AnswerValue, Question } from '../domain/question';
 import type { OptionUsage } from '../domain/store';
 import { notify } from '../platform/confirm';
-import { onAppVisible } from '../platform/lifecycle';
 import { getOnboarded } from '../platform/onboarding';
+import { useToday } from '../useToday';
 import { useTracker } from '../TrackerContext';
 import { TemplatePicker } from './TemplatePicker';
 
@@ -22,10 +22,11 @@ const usesOptions = (q: Question) => q.type === 'checkboxes' || q.type === 'choi
  */
 export function TodayScreen() {
   const { store, now, revision } = useTracker();
-  const [date, setDate] = useState<JournalDate>(() => today(now()));
+  const todayDate = useToday(now);
+  const [date, setDate] = useState<JournalDate>(todayDate);
   const dateRef = useRef(date);
   dateRef.current = date;
-  const todayRef = useRef(date);
+  const lastToday = useRef(todayDate);
 
   const [loaded, setLoaded] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -70,13 +71,13 @@ export function TodayScreen() {
 
   useEffect(() => { void loadAnswers(date); }, [date, revision, loadAnswers]);
 
-  // An app left open overnight: if the user was looking at "today", follow it.
-  useEffect(() => onAppVisible(() => {
-    const t = today(now());
-    const wasToday = dateRef.current === todayRef.current;
-    todayRef.current = t;
-    if (wasToday && t !== dateRef.current) setDate(t);
-  }), [now]);
+  // Left open overnight: if the user was looking at "today", follow it. A day
+  // they deliberately stepped back to is left alone.
+  useEffect(() => {
+    const previous = lastToday.current;
+    lastToday.current = todayDate;
+    if (previous !== todayDate && dateRef.current === previous) setDate(todayDate);
+  }, [todayDate]);
 
   // d is the day the card was rendered for, captured at render time. A pending
   // text draft flushes during unmount, after dateRef has already moved on; reading
@@ -106,7 +107,7 @@ export function TodayScreen() {
   if (totalQuestions === 0 && !onboarded) return <TemplatePicker />;
 
   const answered = questions.filter((q) => answers.has(q.id)).length;
-  const isToday = date >= today(now());
+  const isToday = date >= todayDate;
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }} keyboardShouldPersistTaps="handled">

@@ -104,6 +104,18 @@ describe('number', () => {
     await fireEvent(screen.getByTestId('number-input'), 'blur');
     expect(onChange).toHaveBeenCalledWith(3);
   });
+  test('"1,000" is a thousand, not one', async () => {
+    const onChange = await show(numberQ(), null);
+    await fireEvent.changeText(screen.getByTestId('number-input'), '1,000');
+    await fireEvent(screen.getByTestId('number-input'), 'blur');
+    expect(onChange).toHaveBeenCalledWith(1000);
+  });
+  test('a decimal comma works on a decimal field', async () => {
+    const onChange = await show(numberQ({ decimals: 1 }), null);
+    await fireEvent.changeText(screen.getByTestId('number-input'), '2,5');
+    await fireEvent(screen.getByTestId('number-input'), 'blur');
+    expect(onChange).toHaveBeenCalledWith(2.5);
+  });
   test('clamped at max', async () => {
     const onChange = await show(numberQ({ max: 5 }), 5);
     await press('number-plus');
@@ -242,6 +254,12 @@ describe('checkboxes', () => {
     const ids = screen.getAllByTestId(/^chip-[abc]$/).map((n) => n.props.testID);
     expect(ids).toEqual(['chip-c', 'chip-a', 'chip-b']);
   });
+  test('Other matching an existing option ignoring case reuses that option instead of adding a lookalike', async () => {
+    const onChange = await show(checksQ(['Gym', 'Asthma']), []);
+    await fireEvent.changeText(screen.getByTestId('other-input'), 'gym');
+    await press('other-add');
+    expect(onChange).toHaveBeenCalledWith(['Gym']);
+  });
   test('a selected value not in the option list is still shown selected', async () => {
     await show(checksQ(), ['Removed option']);
     expect(screen.getByTestId('chip-Removed option')).toBeTruthy();
@@ -258,6 +276,12 @@ describe('choice', () => {
     const onChange = await show(choiceQ(), 'Low');
     await press('chip-Low');
     expect(onChange).toHaveBeenCalledWith(null);
+  });
+  test('Other matching an existing option ignoring case selects that option', async () => {
+    const onChange = await show(choiceQ(), null);
+    await fireEvent.changeText(screen.getByTestId('other-input'), 'LOW');
+    await press('other-add');
+    expect(onChange).toHaveBeenCalledWith('Low');
   });
   test('Other adds a custom value', async () => {
     const onChange = await show(choiceQ(), null);
@@ -286,10 +310,10 @@ describe('time', () => {
     await press('time-plus');
     expect(onChange).toHaveBeenCalledWith('00:05');
   });
-  test('+15 from null starts at 22:15', async () => {
+  test('+15 from null starts at 22:00', async () => {
     const onChange = await show(timeQ, null);
     await press('time-plus');
-    expect(onChange).toHaveBeenCalledWith('22:15');
+    expect(onChange).toHaveBeenCalledWith('22:00');
   });
   test('Skip emits null', async () => {
     const onChange = await show(timeQ, '08:00');

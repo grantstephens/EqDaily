@@ -25,9 +25,9 @@ describe('scaleStep', () => {
 });
 
 describe('stepTime', () => {
-  test('from null starts at 22:00 then applies the delta', () => {
-    expect(stepTime(null, 15)).toBe('22:15');
-    expect(stepTime(null, -15)).toBe('21:45');
+  test('first press from null just sets the 22:00 start, whichever way', () => {
+    expect(stepTime(null, 15)).toBe('22:00');
+    expect(stepTime(null, -15)).toBe('22:00');
   });
   test('wraps around midnight both ways', () => {
     expect(stepTime('23:50', 15)).toBe('00:05');

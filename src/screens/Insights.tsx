@@ -3,10 +3,11 @@ import { ScrollView } from 'react-native';
 import { ActivityIndicator, SegmentedButtons, Text } from 'react-native-paper';
 
 import { InsightCard } from '../components/insights/InsightCard';
-import { today, type JournalDate } from '../domain/date';
+import type { JournalDate } from '../domain/date';
 import type { Question } from '../domain/question';
 import { previousDates, rangeDates, summarize, type RangeChoice, type Summary } from '../domain/stats';
 import { notify } from '../platform/confirm';
+import { useToday } from '../useToday';
 import { useTracker } from '../TrackerContext';
 
 interface CardData { question: Question; summary: Summary }
@@ -21,6 +22,7 @@ const RANGES: { value: string; label: string; choice: RangeChoice }[] = [
 /** Insights: per-question graphs and summaries over a chosen window. */
 export function InsightsScreen() {
   const { store, now, revision } = useTracker();
+  const end = useToday(now);
   const [range, setRange] = useState<RangeChoice>(30);
   const [state, setState] = useState<{ cards: CardData[]; dates: JournalDate[]; empty: boolean } | null>(null);
 
@@ -30,7 +32,6 @@ export function InsightsScreen() {
       try {
         const questions = (await store.listQuestions()).filter((q) => !q.hideFromInsights);
         const first = await store.firstAnswerDate();
-        const end = today(now());
         const dates = rangeDates(end, range, first);
         const prev = previousDates(dates, range);
         const answers = await store.answersBetween(prev[0] ?? dates[0]!, end);
@@ -41,7 +42,7 @@ export function InsightsScreen() {
       }
     })();
     return () => { cancelled = true; };
-  }, [store, now, range, revision]);
+  }, [store, end, range, revision]);
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>

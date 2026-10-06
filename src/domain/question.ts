@@ -138,8 +138,27 @@ export function validateValue(q: NewQuestion, value: unknown): string | null {
   }
 }
 
+/**
+ * normalizeQuestion trims the label, options and unit, so what is stored is
+ * exactly what answers (which are trimmed on write) will be compared against.
+ */
+export function normalizeQuestion(q: NewQuestion): NewQuestion {
+  const label = q.label.trim();
+  if ((q.type === 'checkboxes' || q.type === 'choice') && Array.isArray(q.config.options)) {
+    return { ...q, label, config: { ...q.config, options: q.config.options.map((o) => o.trim()) } };
+  }
+  if (q.type === 'number') {
+    const unit = q.config.unit?.trim();
+    return { ...q, label, config: { ...q.config, unit: unit ? unit : undefined } };
+  }
+  return { ...q, label };
+}
+
 export function normalizeValue(q: NewQuestion, value: AnswerValue): AnswerValue {
-  if (q.type === 'choice' || q.type === 'text') return (value as string).trim();
+  // Text is stored with LF endings: the CSV reader normalises CRLF, so storing
+  // it would make an export/import round trip lossy.
+  if (q.type === 'text') return (value as string).trim().replace(/\r\n/g, '\n');
+  if (q.type === 'choice') return (value as string).trim();
   if (q.type === 'checkboxes') {
     const out: string[] = [];
     for (const v of value as string[]) {
@@ -158,6 +177,9 @@ export function lockViolation(old: NewQuestion, next: NewQuestion, answered: boo
     const a = old.config as { min?: number; max?: number };
     const b = next.config as { min?: number; max?: number };
     if (a.min !== b.min || a.max !== b.max) return 'min/max cannot change once a question has answers - add a new question instead';
+  }
+  if (old.type === 'number' && next.type === 'number' && next.config.decimals < old.config.decimals) {
+    return 'decimal places cannot be reduced once a question has answers - existing answers would no longer fit';
   }
   return null;
 }

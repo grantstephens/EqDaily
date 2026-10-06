@@ -70,6 +70,47 @@ export function runStoreContract(name: string, newStore: () => Promise<Store>): 
         await expect(store.updateQuestion(a.id, yesno('b'))).rejects.toThrow(/already/i);
         await expect(store.updateQuestion(a.id, yesno('a'))).resolves.toBeDefined();
       });
+      test('options and label are stored trimmed', async () => {
+        const q = await store.addQuestion({ label: ' Sym ', type: 'checkboxes', config: { options: [' Headache ', 'Asthma'], allowOther: true }, hideFromInsights: false });
+        expect(q.label).toBe('Sym');
+        expect(q.config).toMatchObject({ options: ['Headache', 'Asthma'] });
+        const u = await store.updateQuestion(q.id, { ...sym(), config: { options: [' a ', 'b '], allowOther: true } } as NewQuestion);
+        expect(u.config).toMatchObject({ options: ['a', 'b'] });
+      });
+      test('reorder renumbers every question, so an archived one never ties with an active one', async () => {
+        const a = await store.addQuestion(mood());
+        const b = await store.addQuestion(yesno());
+        const c = await store.addQuestion(sym());
+        await store.setArchived(b.id, true);
+        await store.reorderQuestions([c.id, a.id]);
+        const all = await store.listQuestions({ includeArchived: true });
+        expect(new Set(all.map((q) => q.sort)).size).toBe(3);
+        expect(all.map((q) => q.id)).toEqual([c.id, a.id, b.id]);
+        await store.setArchived(b.id, false);
+        expect((await store.listQuestions()).map((q) => q.id)).toEqual([c.id, a.id, b.id]);
+      });
+      test('a duplicate of an archived question says it is archived', async () => {
+        const q = await store.addQuestion(yesno());
+        await store.setArchived(q.id, true);
+        await expect(store.addQuestion(yesno())).rejects.toThrow(/archived/i);
+      });
+      test('updateQuestion hides the removed options in the same transaction', async () => {
+        const q = await store.addQuestion(sym());
+        await store.setAnswer('2026-10-01', q.id, ['Asthma', 'Wheezy']);
+        await store.updateQuestion(q.id, { ...sym(), config: { options: ['Headache'], allowOther: true } } as NewQuestion, ['Asthma', 'Wheezy']);
+        expect(await store.options(q.id)).toEqual([]);
+      });
+      test('a rejected update hides nothing', async () => {
+        const q = await store.addQuestion(sym());
+        await store.setAnswer('2026-10-01', q.id, ['Wheezy']);
+        await expect(store.updateQuestion(q.id, yesno(), ['Wheezy'])).rejects.toThrow();
+        expect((await store.options(q.id)).map((o) => o.option)).toEqual(['Wheezy']);
+      });
+      test('number decimals cannot shrink once answered', async () => {
+        const q = await store.addQuestion({ label: 'M', type: 'number', config: { decimals: 2 }, hideFromInsights: false });
+        await store.setAnswer('2026-10-01', q.id, 1.25);
+        await expect(store.updateQuestion(q.id, { label: 'M', type: 'number', config: { decimals: 1 }, hideFromInsights: false })).rejects.toThrow(/decimal/i);
+      });
       test('updating an unknown id rejects', async () => {
         await expect(store.updateQuestion(999, yesno())).rejects.toThrow();
       });
@@ -114,6 +155,11 @@ export function runStoreContract(name: string, newStore: () => Promise<Store>): 
       });
       test('unknown question rejects', async () => {
         await expect(store.setAnswer('2026-10-01', 999, 1)).rejects.toThrow();
+      });
+      test('CRLF text is stored with LF endings', async () => {
+        const t = await store.addQuestion({ label: 'T', type: 'text', config: { multiline: true, showFrequent: false }, hideFromInsights: false });
+        await store.setAnswer('2026-10-01', t.id, 'a\r\nb');
+        expect((await store.getAnswers('2026-10-01'))[0]!.value).toBe('a\nb');
       });
       test('whitespace-only text is a skip', async () => {
         const t = await store.addQuestion({ label: 'T', type: 'text', config: { multiline: false, showFrequent: false }, hideFromInsights: false });

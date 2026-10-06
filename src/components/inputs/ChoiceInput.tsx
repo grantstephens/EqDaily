@@ -30,7 +30,10 @@ export function ChoiceInput({ question, value, onChange, optionUsage }: Props) {
           <Chip testID="chip-more" onPress={() => setExpanded(true)}>{`More (${more.length})`}</Chip>
         )}
       </View>
-      {question.config.allowOther && <OtherField onAdd={(t) => onChange(t)} />}
+      {question.config.allowOther && (
+        <OtherField onAdd={(typed) =>
+          onChange([...shown, ...more, ...extras].find((o) => o.toLowerCase() === typed.toLowerCase()) ?? typed)} />
+      )}
     </View>
   );
 }

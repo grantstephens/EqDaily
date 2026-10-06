@@ -137,6 +137,19 @@ describe('midnight', () => {
     await act(async () => { mockVisibleCallbacks.forEach((cb) => cb()); });
     await screen.findByText('Tue 6 Oct 2026');
   });
+  test('left open and visible through midnight, today moves on by itself', async () => {
+    jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
+    try {
+      let clock = new Date(2026, 9, 5, 23, 58);
+      await open(async (x) => { await x.store.addQuestion(yes); }, () => clock);
+      await screen.findByText('Mon 5 Oct 2026');
+      clock = new Date(2026, 9, 6, 0, 2);
+      await act(async () => { jest.advanceTimersByTime(61000); });
+      await screen.findByText('Tue 6 Oct 2026');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
   test('but a day the user stepped back to is left alone', async () => {
     let clock = new Date(2026, 9, 5, 23, 50);
     await open(async (x) => { await x.store.addQuestion(yes); }, () => clock);

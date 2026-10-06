@@ -21,7 +21,7 @@ function Body({ summary, dates }: { summary: Summary; dates: string[] }) {
             <Text variant="headlineMedium">{average!.toFixed(1)}</Text>
             {unit ? <Text>{unit}</Text> : null}
             {change !== null && (
-              <Text>{change === 0 ? 'no change' : `${change > 0 ? '▲' : '▼'} ${Math.abs(change).toFixed(1)}`}</Text>
+              <Text>{Number(Math.abs(change).toFixed(1)) === 0 ? 'no change' : `${change > 0 ? '▲' : '▼'} ${Math.abs(change).toFixed(1)}`}</Text>
             )}
           </View>
           <LineChart points={points} dates={dates} axisMin={axisMin} axisMax={axisMax} />

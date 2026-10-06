@@ -38,7 +38,11 @@ export function CheckboxesInput({ question, value, onChange, optionUsage }: Prop
           onPress={() => { if (!(value !== null && value.length === 0)) onChange([]); }}>None</Chip>
       </View>
       {question.config.allowOther && (
-        <OtherField onAdd={(t) => { if (!selected.includes(t)) onChange([...selected, t]); }} />
+        <OtherField onAdd={(typed) => {
+          // "gym" when "Gym" exists is the same option, not a lookalike.
+          const t = [...shown, ...more, ...selected].find((o) => o.toLowerCase() === typed.toLowerCase()) ?? typed;
+          if (!selected.includes(t)) onChange([...selected, t]);
+        }} />
       )}
       {value !== null && <Button testID="checks-skip" compact onPress={() => onChange(null)}>Skip</Button>}
     </View>

@@ -1,6 +1,6 @@
 import { toRfc3339Utc, type JournalDate } from '../domain/date';
 import {
-  lockViolation, planAnswerWrite, questionKey, validateQuestion,
+  lockViolation, normalizeQuestion, planAnswerWrite, questionKey, validateQuestion,
   type Answer, type AnswerValue, type NewQuestion, type Question,
 } from '../domain/question';
 import type { ImportCounts, ImportPlan, OptionUsage, Store } from '../domain/store';
@@ -69,8 +69,10 @@ export class SqliteStore implements Store {
   private async assertUnique(q: NewQuestion, exceptId: number | null): Promise<void> {
     const rows = await this.db.all<QuestionRow>('SELECT * FROM question');
     const key = questionKey(q);
-    if (rows.some((r) => r.id !== exceptId && questionKey(fromRow(r)) === key)) {
-      throw new Error(`a "${q.label.trim()}" ${q.type} question already exists`);
+    const clash = rows.find((r) => r.id !== exceptId && questionKey(fromRow(r)) === key);
+    if (clash) {
+      const hint = clash.archived_at !== null ? ' (it is archived - restore it from the Archived list)' : '';
+      throw new Error(`a "${q.label.trim()}" ${q.type} question already exists${hint}`);
     }
   }
 
@@ -78,10 +80,11 @@ export class SqliteStore implements Store {
     const err = validateQuestion(q);
     if (err) throw new Error(err);
     await this.assertUnique(q, null);
+    q = normalizeQuestion(q);
     const next = (await this.db.all<{ next: number }>('SELECT COALESCE(MAX(sort), -1) + 1 AS next FROM question'))[0]!.next;
     await this.db.run(
       'INSERT INTO question (label, type, config, sort, archived_at, created) VALUES (?, ?, ?, ?, ?, ?)',
-      [q.label.trim(), q.type, toConfigJson(q), next, archivedAt, this.stamp()],
+      [q.label, q.type, toConfigJson(q), next, archivedAt, this.stamp()],
     );
     const id = (await this.db.all<{ id: number }>('SELECT last_insert_rowid() AS id'))[0]!.id;
     return this.questionById(id);
@@ -125,7 +128,7 @@ export class SqliteStore implements Store {
     return this.tx(() => this.insertQuestion(q, null));
   }
 
-  updateQuestion(id: number, next: NewQuestion): Promise<Question> {
+  updateQuestion(id: number, next: NewQuestion, hideOptions: string[] = []): Promise<Question> {
     return this.tx(async () => {
       const old = await this.questionById(id);
       const err = validateQuestion(next);
@@ -134,15 +137,22 @@ export class SqliteStore implements Store {
       const answered = (await this.db.all('SELECT 1 FROM answer WHERE question_id = ? LIMIT 1', [id])).length > 0;
       const locked = lockViolation(old, next, answered);
       if (locked) throw new Error(locked);
+      const clean = normalizeQuestion(next);
       await this.db.run('UPDATE question SET label = ?, type = ?, config = ? WHERE id = ?',
-        [next.label.trim(), next.type, toConfigJson(next), id]);
+        [clean.label, clean.type, toConfigJson(clean), id]);
+      for (const option of hideOptions) {
+        await this.db.run('UPDATE option_usage SET hidden = 1 WHERE question_id = ? AND option = ?', [id, option]);
+      }
       return this.questionById(id);
     });
   }
 
   reorderQuestions(ids: number[]): Promise<void> {
     return this.tx(async () => {
-      for (let i = 0; i < ids.length; i++) await this.db.run('UPDATE question SET sort = ? WHERE id = ?', [i, ids[i]!]);
+      const all = (await this.db.all<{ id: number }>('SELECT id FROM question ORDER BY sort, id')).map((r) => r.id);
+      const first = ids.filter((id) => all.includes(id));
+      const order = [...first, ...all.filter((id) => !first.includes(id))];
+      for (let i = 0; i < order.length; i++) await this.db.run('UPDATE question SET sort = ? WHERE id = ?', [i, order[i]!]);
     });
   }
 
@@ -185,7 +195,12 @@ export class SqliteStore implements Store {
   }
 
   async *allAnswers(): AsyncIterable<Answer> {
-    for await (const r of this.db.each<AnswerRow>('SELECT * FROM answer ORDER BY date, question_id')) yield toAnswer(r);
+    // Read through the serial queue like every other call: streaming rows from
+    // an open cursor while an autosave runs BEGIN..COMMIT on the same
+    // connection would interleave them.
+    const rows = await this.serial(async () =>
+      (await this.db.all<AnswerRow>('SELECT * FROM answer ORDER BY date, question_id')).map(toAnswer));
+    for (const a of rows) yield a;
   }
 
   applyImport(plan: ImportPlan, overwrite: boolean): Promise<ImportCounts> {

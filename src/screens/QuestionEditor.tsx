@@ -62,8 +62,7 @@ export function QuestionEditorScreen({ onClose }: { onClose: () => void }) {
   const save = async (q: NewQuestion, removed: string[]) => {
     const existing = editing?.question;
     if (existing) {
-      await store.updateQuestion(existing.id, q);
-      for (const o of removed) await store.hideOption(existing.id, o);
+      await store.updateQuestion(existing.id, q, removed);
     } else {
       await store.addQuestion(q);
     }

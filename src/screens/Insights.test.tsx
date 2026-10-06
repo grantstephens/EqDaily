@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import React from 'react';
 
 import type { NewQuestion } from '../domain/question';
@@ -90,4 +90,33 @@ test('change versus the previous period is shown', async () => {
   await render(h.wrap(<InsightsScreen />));
   await fireEvent.press(await screen.findByTestId('range-7'));
   await screen.findByText('▲ 2.0');
+});
+
+test('a change that rounds to zero reads "no change", not "▲ 0.0"', async () => {
+  const h = await makeHarness();
+  const m = await h.store.addQuestion(q('Mood', 'scale', { min: 0, max: 10 }));
+  await h.store.setAnswer('2026-10-04', m.id, 7);
+  await h.store.setAnswer('2026-09-25', m.id, 6.98);
+  await render(h.wrap(<InsightsScreen />));
+  await fireEvent.press(await screen.findByTestId('range-7'));
+  await screen.findByText('no change');
+  expect(screen.queryByText(/▲/)).toBeNull();
+});
+
+test('left open past midnight, the window moves on without a foreground event', async () => {
+  jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
+  try {
+    let clock = new Date(2026, 9, 5, 23, 58);
+    const h = await makeHarness(() => clock);
+    const m = await h.store.addQuestion(q('Mood', 'scale', { min: 0, max: 10 }));
+    await h.store.setAnswer('2026-10-06', m.id, 5);
+    await h.store.setAnswer('2026-10-05', m.id, 5);
+    await render(h.wrap(<InsightsScreen />));
+    await screen.findByText('1 of 30 days answered');
+    clock = new Date(2026, 9, 6, 0, 2);
+    await act(async () => { jest.advanceTimersByTime(61000); });
+    await screen.findByText('2 of 30 days answered');
+  } finally {
+    jest.useRealTimers();
+  }
 });

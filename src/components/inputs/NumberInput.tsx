@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 
 import type { Question } from '../../domain/question';
+import { parseLooseNumber } from '../../domain/looseNumber';
 import { stepValue } from '../../domain/stepper';
 
 type Props = {
@@ -26,8 +27,8 @@ export function NumberInput({ question, value, onChange }: Props) {
       if (value !== null) onChange(null);
       return;
     }
-    const n = Number(draft.trim().replace(',', '.'));
-    if (!Number.isFinite(n)) {
+    const n = parseLooseNumber(draft, decimals);
+    if (n === null) {
       setDraft(value === null ? '' : String(value));
       return;
     }

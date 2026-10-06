@@ -27,9 +27,17 @@ export interface Store {
   listQuestions(opts?: { includeArchived?: boolean }): Promise<Question[]>;
   /** addQuestion validates, enforces label+type uniqueness, and appends at the end. */
   addQuestion(q: NewQuestion): Promise<Question>;
-  /** updateQuestion replaces label/type/config, enforcing the post-answer locks. */
-  updateQuestion(id: number, next: NewQuestion): Promise<Question>;
-  /** reorderQuestions sets sort to each id's index in ids. */
+  /**
+   * updateQuestion replaces label/type/config, enforcing the post-answer locks.
+   * hideOptions are hidden from the option list in the same transaction, so a
+   * failed update leaves them visible.
+   */
+  updateQuestion(id: number, next: NewQuestion, hideOptions?: string[]): Promise<Question>;
+  /**
+   * reorderQuestions puts ids first, in that order, then every other question
+   * (archived ones) in its old order, and renumbers sort 0..n-1 across all of
+   * them so no two questions ever share a sort value.
+   */
   reorderQuestions(ids: number[]): Promise<void>;
   setArchived(id: number, archived: boolean): Promise<void>;
   hasAnswers(id: number): Promise<boolean>;

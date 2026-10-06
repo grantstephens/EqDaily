@@ -21,9 +21,13 @@ export function scaleStep(c: ScaleConfig): number {
   return c.max - c.min >= 5 ? 1 : (c.max - c.min) / 10;
 }
 
-/** stepTime moves an HH:MM by delta minutes, wrapping; from null it starts at 22:00. */
+/**
+ * stepTime moves an HH:MM by delta minutes, wrapping. Like the other steppers,
+ * the first press from unanswered just sets the start value (22:00).
+ */
 export function stepTime(current: string | null, delta: number): string {
-  return minutesToTime(timeToMinutes(current ?? '22:00') + delta);
+  if (current === null) return '22:00';
+  return minutesToTime(timeToMinutes(current) + delta);
 }
 
 /**

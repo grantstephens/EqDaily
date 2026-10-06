@@ -1,7 +1,4 @@
 const DAY = 1440;
-const EVENING = 18 * 60;
-const EARLY = 6 * 60;
-const NOON = 12 * 60;
 
 export function timeToMinutes(t: string): number {
   const [h, m] = t.split(':').map(Number);
@@ -15,13 +12,26 @@ export function minutesToTime(m: number): string {
 }
 
 /**
- * A series with both a late-evening and an early-morning value is a
- * bedtime-style series crossing midnight: shift every pre-noon value up a day
- * so 23:30 -> 00:30 reads as +60 minutes, not -1380.
+ * unwrapTimes puts a series of times-of-day on one continuous scale. Times are
+ * points on a 24h circle; the series' natural "start" is the point right after
+ * its largest empty gap. Values before that start are shifted up a day, so
+ * 23:30 and 00:30 read as 1410 and 1470 (an hour apart) instead of 1410 and 30,
+ * and 22:00 / 06:00 read as 8 hours apart rather than 16. A series that does
+ * not cross midnight keeps its values. Input order is preserved.
  */
 export function unwrapTimes(minutes: number[]): number[] {
-  const straddles = minutes.some((m) => m >= EVENING) && minutes.some((m) => m < EARLY);
-  return straddles ? minutes.map((m) => (m < NOON ? m + DAY : m)) : minutes;
+  const sorted = [...new Set(minutes)].sort((a, b) => a - b);
+  if (sorted.length < 2) return minutes;
+  let widest = -1;
+  let start = sorted[0]!;
+  sorted.forEach((m, i) => {
+    const next = i + 1 < sorted.length ? sorted[i + 1]! : sorted[0]! + DAY;
+    if (next - m > widest) {
+      widest = next - m;
+      start = sorted[(i + 1) % sorted.length]!;
+    }
+  });
+  return minutes.map((m) => (m < start ? m + DAY : m));
 }
 
 export function averageTime(minutes: number[]): string | null {

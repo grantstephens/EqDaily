@@ -1,6 +1,6 @@
 import { toRfc3339Utc, type JournalDate } from '../domain/date';
 import {
-  lockViolation, planAnswerWrite, questionKey, validateQuestion,
+  lockViolation, normalizeQuestion, planAnswerWrite, questionKey, validateQuestion,
   type Answer, type AnswerValue, type NewQuestion, type Question,
 } from '../domain/question';
 import type { ImportCounts, ImportPlan, OptionUsage, Store } from '../domain/store';
@@ -79,8 +79,10 @@ export class IndexedDbStore implements Store {
   private async assertUnique(tx: IDBTransaction, q: NewQuestion, exceptId: number | null): Promise<void> {
     const all = (await promisify(tx.objectStore(Q).getAll())) as Question[];
     const key = questionKey(q);
-    if (all.some((x) => x.id !== exceptId && questionKey(x) === key)) {
-      throw new Error(`a "${q.label.trim()}" ${q.type} question already exists`);
+    const clash = all.find((x) => x.id !== exceptId && questionKey(x) === key);
+    if (clash) {
+      const hint = clash.archivedAt !== null ? ' (it is archived - restore it from the Archived list)' : '';
+      throw new Error(`a "${q.label.trim()}" ${q.type} question already exists${hint}`);
     }
   }
 
@@ -91,7 +93,7 @@ export class IndexedDbStore implements Store {
     const store = tx.objectStore(Q);
     const all = (await promisify(store.getAll())) as Question[];
     const sort = all.reduce((m, x) => Math.max(m, x.sort), -1) + 1;
-    const record = { ...q, label: q.label.trim(), sort, archivedAt, created: this.stamp() };
+    const record = { ...normalizeQuestion(q), sort, archivedAt, created: this.stamp() };
     const id = (await promisify(store.add(record))) as number;
     const full = { ...record, id } as Question;
     await promisify(store.put(full));
@@ -126,8 +128,8 @@ export class IndexedDbStore implements Store {
     return this.run([Q], 'readwrite', (tx) => this.insertQuestion(tx, q, null));
   }
 
-  updateQuestion(id: number, next: NewQuestion): Promise<Question> {
-    return this.run([Q, A], 'readwrite', async (tx) => {
+  updateQuestion(id: number, next: NewQuestion, hideOptions: string[] = []): Promise<Question> {
+    return this.run([Q, A, U], 'readwrite', async (tx) => {
       const old = await this.questionById(tx, id);
       const err = validateQuestion(next);
       if (err) throw new Error(err);
@@ -135,8 +137,13 @@ export class IndexedDbStore implements Store {
       const answered = (await promisify(tx.objectStore(A).index('byQuestion').count(IDBKeyRange.only(id)))) > 0;
       const locked = lockViolation(old, next, answered);
       if (locked) throw new Error(locked);
-      const full = { ...next, label: next.label.trim(), id, sort: old.sort, archivedAt: old.archivedAt, created: old.created } as Question;
+      const full = { ...normalizeQuestion(next), id, sort: old.sort, archivedAt: old.archivedAt, created: old.created } as Question;
       await promisify(tx.objectStore(Q).put(full));
+      const usage = tx.objectStore(U);
+      for (const option of hideOptions) {
+        const cur = (await promisify(usage.get([id, option]))) as UsageRec | undefined;
+        if (cur) await promisify(usage.put({ ...cur, hidden: true }));
+      }
       return full;
     });
   }
@@ -144,10 +151,10 @@ export class IndexedDbStore implements Store {
   reorderQuestions(ids: number[]): Promise<void> {
     return this.run([Q], 'readwrite', async (tx) => {
       const store = tx.objectStore(Q);
-      for (let i = 0; i < ids.length; i++) {
-        const q = (await promisify(store.get(ids[i]!))) as Question | undefined;
-        if (q) await promisify(store.put({ ...q, sort: i }));
-      }
+      const all = ((await promisify(store.getAll())) as Question[]).sort(bySortThenId);
+      const first = ids.map((id) => all.find((q) => q.id === id)).filter((q): q is Question => q !== undefined);
+      const order = [...first, ...all.filter((q) => !first.includes(q))];
+      for (let i = 0; i < order.length; i++) await promisify(store.put({ ...order[i]!, sort: i }));
     });
   }
 

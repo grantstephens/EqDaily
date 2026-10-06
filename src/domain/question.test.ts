@@ -1,6 +1,6 @@
 import {
   lockViolation, normalizeValue, planAnswerWrite, questionKey,
-  validateQuestion, validateValue, type NewQuestion,
+  normalizeQuestion, validateQuestion, validateValue, type NewQuestion,
 } from './question';
 
 const scale = (min = 0, max = 10): NewQuestion =>
@@ -119,5 +119,36 @@ describe('planAnswerWrite', () => {
   });
   test('whitespace-only text is a skip', () => {
     expect(planAnswerWrite(text(), 'old', '   ').value).toBeNull();
+  });
+});
+
+describe('normalizeQuestion', () => {
+  test('trims the label and every option so what is stored matches what answers will match', () => {
+    const q = normalizeQuestion({ ...checks([' x ', 'y ']), label: '  Sym  ' });
+    expect(q.label).toBe('Sym');
+    expect((q.config as { options: string[] }).options).toEqual(['x', 'y']);
+  });
+  test('trims a number unit and drops an empty one', () => {
+    expect((normalizeQuestion(num({ unit: ' kg ' })).config as { unit?: string }).unit).toBe('kg');
+    expect((normalizeQuestion(num({ unit: '  ' })).config as { unit?: string }).unit).toBeUndefined();
+  });
+  test('leaves other types alone', () => {
+    expect(normalizeQuestion(yesno())).toEqual(yesno());
+  });
+});
+
+describe('text answers', () => {
+  test('CRLF line endings are stored as LF so an export/import round trip is lossless', () => {
+    expect(planAnswerWrite(text(), null, 'a\r\nb').value).toBe('a\nb');
+  });
+});
+
+describe('lockViolation decimals', () => {
+  test('decimals may increase but not decrease once answered', () => {
+    expect(lockViolation(num({ decimals: 1 }), num({ decimals: 2 }), true)).toBeNull();
+    expect(lockViolation(num({ decimals: 2 }), num({ decimals: 1 }), true)).toMatch(/decimal/i);
+  });
+  test('decimals are free while unanswered', () => {
+    expect(lockViolation(num({ decimals: 2 }), num({ decimals: 0 }), false)).toBeNull();
   });
 });
