@@ -10,7 +10,7 @@ import { notify } from '../platform/confirm';
 import { getOnboarded } from '../platform/onboarding';
 import { useToday } from '../useToday';
 import { useTracker } from '../TrackerContext';
-import { TemplatePicker } from './TemplatePicker';
+import { SetupGuide } from './SetupGuide';
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const usesOptions = (q: Question) => q.type === 'checkboxes' || q.type === 'choice';
@@ -104,7 +104,7 @@ export function TodayScreen() {
   };
 
   if (!loaded) return <ActivityIndicator style={{ marginTop: 32 }} />;
-  if (totalQuestions === 0 && !onboarded) return <TemplatePicker />;
+  if (totalQuestions === 0 && !onboarded) return <SetupGuide />;
 
   const answered = questions.filter((q) => answers.has(q.id)).length;
   const isToday = date >= todayDate;

@@ -45,30 +45,34 @@ async function open(seed: (h: Awaited<ReturnType<typeof makeHarness>>) => Promis
 }
 
 describe('first launch', () => {
-  test('picker appears; Start with these creates every template question', async () => {
+  test('the setup guide appears; keeping every suggestion creates them all', async () => {
     const h = await makeHarness();
     await render(h.wrap(<TodayScreen />));
-    await fireEvent.press(await screen.findByTestId('template-start'));
+    await fireEvent.press(await screen.findByTestId('guide-start'));
+    for (let i = 0; i < TEMPLATES.length; i++) await fireEvent.press(screen.getByTestId('guide-keep'));
+    await fireEvent.press(screen.getByTestId('guide-finish'));
     await screen.findByText('Mood');
     expect((await h.store.listQuestions()).map((q) => q.label)).toEqual(TEMPLATES.map((t) => t.question.label));
   });
-  test('unticking a template leaves it out', async () => {
+  test('skipping a suggestion leaves it out', async () => {
     const h = await makeHarness();
     await render(h.wrap(<TodayScreen />));
-    await fireEvent.press(await screen.findByTestId('template-mood'));
-    await fireEvent.press(screen.getByTestId('template-start'));
+    await fireEvent.press(await screen.findByTestId('guide-start'));
+    await fireEvent.press(screen.getByTestId('guide-skip')); // mood
+    for (let i = 1; i < TEMPLATES.length; i++) await fireEvent.press(screen.getByTestId('guide-keep'));
+    await fireEvent.press(screen.getByTestId('guide-finish'));
     await screen.findByText('Exercise');
     expect((await h.store.listQuestions()).map((q) => q.label)).not.toContain('Mood');
   });
-  test('Start blank shows the empty state and the picker never returns', async () => {
+  test('Start blank shows the empty state and the guide never returns', async () => {
     const h = await makeHarness();
     const view = await render(h.wrap(<TodayScreen />));
-    await fireEvent.press(await screen.findByTestId('template-blank'));
+    await fireEvent.press(await screen.findByTestId('guide-blank'));
     await screen.findByText(/No questions yet/);
     await view.unmount();
     await render(h.wrap(<TodayScreen />));
     await screen.findByText(/No questions yet/);
-    expect(screen.queryByTestId('template-start')).toBeNull();
+    expect(screen.queryByTestId('guide-start')).toBeNull();
   });
 });
 

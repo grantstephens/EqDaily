@@ -4,13 +4,14 @@ import { Button, Chip, HelperText, Switch, Text, TextInput } from 'react-native-
 
 import {
   MAX_OPTION, MAX_OPTIONS, QUESTION_TYPES, validateQuestion,
-  type NewQuestion, type Question, type QuestionType,
+  type NewQuestion, type QuestionType,
 } from '../domain/question';
 import type { OptionUsage } from '../domain/store';
 import { TYPE_LABELS } from '../domain/typeLabels';
 
 interface Props {
-  initial?: Question;
+  /** The question being edited. May be unsaved (e.g. a suggestion in the setup guide). */
+  initial?: NewQuestion;
   /** answered locks the type and (for scale/number) the min/max. */
   answered: boolean;
   /** Learned options for an existing checkbox/choice question, so they can be pruned. */
