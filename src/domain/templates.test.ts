@@ -11,3 +11,10 @@ test('ids and question keys are unique', () => {
 test('covers all seven types', () => {
   expect(new Set(TEMPLATES.map((t) => t.question.type)).size).toBe(7);
 });
+
+test('every template carries guide copy: a question prompt and a one-line why', () => {
+  for (const t of TEMPLATES) {
+    expect(t.prompt.trim().length).toBeGreaterThan(8);
+    expect(t.why.trim().length).toBeGreaterThan(20);
+  }
+});
