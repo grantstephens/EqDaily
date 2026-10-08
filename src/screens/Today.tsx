@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 import { ActivityIndicator, Button, Card, Text } from 'react-native-paper';
 
 import { AnswerInput } from '../components/inputs/AnswerInput';
+import { KeyboardAwareScroll } from '../components/KeyboardAwareScroll';
 import { addDays, displayDate, type JournalDate } from '../domain/date';
 import type { AnswerValue, Question } from '../domain/question';
 import type { OptionUsage } from '../domain/store';
@@ -110,7 +111,7 @@ export function TodayScreen() {
   const isToday = date >= todayDate;
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }} keyboardShouldPersistTaps="handled">
+    <KeyboardAwareScroll contentContainerStyle={{ padding: 16, gap: 12 }} keyboardShouldPersistTaps="handled">
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Button testID="date-prev" accessibilityLabel="Previous day" compact onPress={() => setDate(addDays(date, -1))}>‹</Button>
         <Text variant="titleMedium">{displayDate(date)}</Text>
@@ -135,6 +136,6 @@ export function TodayScreen() {
           </Card.Content>
         </Card>
       ))}
-    </ScrollView>
+    </KeyboardAwareScroll>
   );
 }

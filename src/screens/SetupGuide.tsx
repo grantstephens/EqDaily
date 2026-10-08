@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 import { Button, Card, HelperText, Text, useTheme } from 'react-native-paper';
 
 import { AnswerInput } from '../components/inputs/AnswerInput';
+import { KeyboardAwareScroll } from '../components/KeyboardAwareScroll';
 import {
   addExtra, back, begin, canKeep, collision, currentItem, decide, editExtra, editItem,
   finalEntries, goToReview, isReview, isWelcome, keepCurrent, removeExtra, skipCurrent,
@@ -98,14 +99,14 @@ export function SetupGuide() {
   // ---- welcome
   if (isWelcome(g)) {
     return (
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+      <KeyboardAwareScroll contentContainerStyle={{ padding: 16, gap: 12 }}>
         <Text variant="headlineSmall">Welcome to EqDaily</Text>
         <Text testID="guide-intro">
           {`${n} suggested questions, about a minute. Keep each one, change it, or skip it. Nothing is saved until the end, and you can add or change questions any time.`}
         </Text>
         <Button testID="guide-start" mode="contained" onPress={() => go(begin(g))}>Let's go</Button>
         <Button testID="guide-blank" onPress={endSetup}>Start blank</Button>
-      </ScrollView>
+      </KeyboardAwareScroll>
     );
   }
 
@@ -114,7 +115,7 @@ export function SetupGuide() {
     const entries = finalEntries(g);
     const notIncluded = g.items.map((it, index) => ({ it, index })).filter(({ it }) => it.decision !== 'keep');
     return (
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScroll contentContainerStyle={{ padding: 16, gap: 12 }} keyboardShouldPersistTaps="handled">
         <Text variant="headlineSmall">Your questions</Text>
         {entries.length === 0 && (
           <Text testID="guide-empty">Nothing to track yet. Restore a suggestion below or add your own.</Text>
@@ -163,7 +164,7 @@ export function SetupGuide() {
         </Button>
         <Button testID="guide-back" onPress={() => go(back(g))}>Back</Button>
         <Button testID="guide-skip-setup" onPress={endSetup}>Skip setup</Button>
-      </ScrollView>
+      </KeyboardAwareScroll>
     );
   }
 
@@ -171,7 +172,7 @@ export function SetupGuide() {
   const item = currentItem(g)!;
   const q = item.question;
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }} keyboardShouldPersistTaps="handled">
+    <KeyboardAwareScroll contentContainerStyle={{ padding: 16, gap: 12 }} keyboardShouldPersistTaps="handled">
       <Text testID="guide-progress" variant="labelLarge">{`Step ${g.step} of ${n}`}</Text>
       <View style={{ height: 6, borderRadius: 3, backgroundColor: theme.colors.surfaceVariant }}>
         <View style={{ height: 6, borderRadius: 3, width: `${(g.step / n) * 100}%`, backgroundColor: theme.colors.primary }} />
@@ -206,6 +207,6 @@ export function SetupGuide() {
       </View>
       <Button testID="guide-skip-setup" onPress={endSetup}>Skip setup</Button>
       <Button testID="guide-to-review" compact onPress={() => go(goToReview(g))}>Jump to review</Button>
-    </ScrollView>
+    </KeyboardAwareScroll>
   );
 }

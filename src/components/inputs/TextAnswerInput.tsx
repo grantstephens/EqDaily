@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { TextInput } from 'react-native-paper';
 
+import { View } from 'react-native';
+import { FIELD_MAX_HEIGHT } from '../../domain/keyboardScroll';
 import { MAX_TEXT, type Question } from '../../domain/question';
+import { useAutosize } from '../../platform/autosize';
 
 type Props = {
   question: Extract<Question, { type: 'text' }>;
@@ -18,6 +21,7 @@ const IDLE_MS = 800;
  */
 export function TextAnswerInput({ question, value, onChange }: Props) {
   const [draft, setDraft] = useState(value ?? '');
+  const wrap = useRef<View>(null);
   const draftRef = useRef(draft);
   const committed = useRef(value ?? '');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -43,6 +47,8 @@ export function TextAnswerInput({ question, value, onChange }: Props) {
 
   useEffect(() => () => { if (timer.current) commit(); }, []); // flush a pending edit on unmount
 
+  useAutosize(wrap, draft, FIELD_MAX_HEIGHT);
+
   const change = (text: string) => {
     draftRef.current = text;
     setDraft(text);
@@ -51,14 +57,22 @@ export function TextAnswerInput({ question, value, onChange }: Props) {
   };
 
   return (
-    <TextInput
-      testID="text-input"
-      mode="outlined"
-      multiline={question.config.multiline}
-      maxLength={MAX_TEXT}
-      value={draft}
-      onChangeText={change}
-      onBlur={commit}
-    />
+    <View ref={wrap}>
+      <TextInput
+        testID="text-input"
+        mode="outlined"
+        // Always multiline so a long entry wraps instead of scrolling sideways. Native
+        // then grows the box with its content (up to the cap); on web useAutosize does.
+        multiline
+        // Enter ends a one-line answer; on a multi-line question it adds a line.
+        submitBehavior={question.config.multiline ? 'newline' : 'blurAndSubmit'}
+        returnKeyType={question.config.multiline ? 'default' : 'done'}
+        contentStyle={{ maxHeight: FIELD_MAX_HEIGHT }}
+        maxLength={MAX_TEXT}
+        value={draft}
+        onChangeText={change}
+        onBlur={commit}
+      />
+    </View>
   );
 }

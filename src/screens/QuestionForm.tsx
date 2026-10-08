@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 import { Button, Chip, HelperText, Switch, Text, TextInput } from 'react-native-paper';
+import { KeyboardAwareScroll } from '../components/KeyboardAwareScroll';
 
 import {
   MAX_OPTION, MAX_OPTIONS, QUESTION_TYPES, validateQuestion,
@@ -102,7 +103,7 @@ export function QuestionForm({ initial, answered, usage, onSave, onCancel }: Pro
   );
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }} keyboardShouldPersistTaps="handled">
+    <KeyboardAwareScroll contentContainerStyle={{ padding: 16, gap: 12 }} keyboardShouldPersistTaps="handled">
       <Text variant="titleLarge">{initial ? 'Edit question' : 'New question'}</Text>
       <TextInput testID="form-label" label="Question" mode="outlined" value={label} onChangeText={setLabel} />
 
@@ -185,6 +186,6 @@ export function QuestionForm({ initial, answered, usage, onSave, onCancel }: Pro
         <Button testID="form-cancel" onPress={onCancel} disabled={busy}>Cancel</Button>
         <Button testID="form-save" mode="contained" onPress={submit} disabled={busy}>Save</Button>
       </View>
-    </ScrollView>
+    </KeyboardAwareScroll>
   );
 }

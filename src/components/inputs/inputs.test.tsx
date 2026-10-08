@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import React from 'react';
+import { StyleSheet } from 'react-native';
 
 import type { Question } from '../../domain/question';
 import { AnswerInput } from './AnswerInput';
@@ -182,6 +183,24 @@ describe('text', () => {
   test('input is capped at the stored-answer limit so long text is never silently discarded', async () => {
     await show(textQ(), null);
     expect(screen.getByTestId('text-input').props.maxLength).toBe(5000);
+  });
+  test('always wraps, so a long entry becomes multi-line by itself (even on a one-line question)', async () => {
+    await show(textQ(false), null);
+    expect(screen.getByTestId('text-input').props.multiline).toBe(true);
+  });
+  test('Enter dismisses the keyboard on a one-line question', async () => {
+    await show(textQ(false), null);
+    expect(screen.getByTestId('text-input').props.submitBehavior).toBe('blurAndSubmit');
+  });
+  test('Enter adds a new line on a multi-line question', async () => {
+    await show(textQ(true), null);
+    expect(screen.getByTestId('text-input').props.submitBehavior).toBe('newline');
+  });
+  test('the box is capped at a maximum height; native then grows with the text up to it', async () => {
+    await show(textQ(), null);
+    const style = StyleSheet.flatten(screen.getByTestId('text-input').props.style);
+    expect(style.maxHeight).toBe(240);
+    expect(style.height).toBeUndefined(); // no fixed height: the input sizes itself to its content
   });
   test('blur on an untouched empty field emits nothing', async () => {
     const onChange = await show(textQ(), null);
