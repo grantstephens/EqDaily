@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import React from 'react';
 const mockPickTime = jest.fn();
 jest.mock('../../platform/timePicker', () => ({ pickTime: (...a: unknown[]) => mockPickTime(...a) }));
@@ -371,6 +371,14 @@ describe('time', () => {
     expect(screen.queryByTestId('time-reset')).toBeNull();
     await show(q, '07:00');
     expect(screen.queryByTestId('time-reset')).toBeNull();
+  });
+  test('the time sits on its own full-width line; the nudge buttons are on a second line so a narrow screen cannot crush it', async () => {
+    await show(timeQ, '08:00');
+    const actions = within(screen.getByTestId('time-actions'));
+    expect(actions.getByTestId('time-minus')).toBeTruthy();
+    expect(actions.getByTestId('time-plus')).toBeTruthy();
+    expect(actions.getByTestId('time-skip')).toBeTruthy();
+    expect(actions.queryByTestId('time-pick')).toBeNull();
   });
   test('Skip only shows with a value and clears it', async () => {
     const onChange = await show(timeQ, '08:00');

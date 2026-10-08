@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { Button, Card, HelperText, Text, useTheme } from 'react-native-paper';
+import { touchButton } from '../components/touch';
 
 import { AnswerInput } from '../components/inputs/AnswerInput';
 import { KeyboardAwareScroll } from '../components/KeyboardAwareScroll';
@@ -104,8 +105,8 @@ export function SetupGuide() {
         <Text testID="guide-intro">
           {`${n} suggested questions, about a minute. Keep each one, change it, or skip it. Nothing is saved until the end, and you can add or change questions any time.`}
         </Text>
-        <Button testID="guide-start" mode="contained" onPress={() => go(begin(g))}>Let's go</Button>
-        <Button testID="guide-blank" onPress={endSetup}>Start blank</Button>
+        <Button {...touchButton} testID="guide-start" mode="contained" onPress={() => go(begin(g))}>Let's go</Button>
+        <Button {...touchButton} testID="guide-blank" onPress={endSetup}>Start blank</Button>
       </KeyboardAwareScroll>
     );
   }
@@ -126,8 +127,8 @@ export function SetupGuide() {
               <Text variant="titleMedium">{e.question.label}</Text>
               <Text variant="labelSmall">{TYPE_LABELS[e.question.type]}</Text>
               <View style={{ flexDirection: 'row' }}>
-                <Button testID={`review-edit-${pos}`} compact onPress={() => setEditing({ ref: { kind: e.kind, index: e.index } })}>Edit</Button>
-                <Button
+                <Button {...touchButton} testID={`review-edit-${pos}`} compact onPress={() => setEditing({ ref: { kind: e.kind, index: e.index } })}>Edit</Button>
+                <Button {...touchButton}
                   testID={`review-remove-${pos}`}
                   compact
                   onPress={() => go(e.kind === 'item' ? decide(g, e.index, 'skip') : removeExtra(g, e.index))}
@@ -136,7 +137,7 @@ export function SetupGuide() {
             </Card.Content>
           </Card>
         ))}
-        <Button testID="guide-add-own" mode="outlined" onPress={() => setEditing({ ref: 'new' })}>Add your own question</Button>
+        <Button {...touchButton} testID="guide-add-own" mode="outlined" onPress={() => setEditing({ ref: 'new' })}>Add your own question</Button>
 
         {notIncluded.length > 0 && (
           <View style={{ gap: 4 }}>
@@ -144,7 +145,7 @@ export function SetupGuide() {
             {notIncluded.map(({ it, index }) => (
               <View key={it.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Text>{it.question.label}</Text>
-                <Button
+                <Button {...touchButton}
                   testID={`review-restore-${it.id}`}
                   compact
                   onPress={() => {
@@ -159,11 +160,11 @@ export function SetupGuide() {
         )}
         {notice !== null && <HelperText testID="guide-notice" type="error">{notice}</HelperText>}
 
-        <Button testID="guide-finish" mode="contained" disabled={busy || entries.length === 0} onPress={finish}>
+        <Button {...touchButton} testID="guide-finish" mode="contained" disabled={busy || entries.length === 0} onPress={finish}>
           {entries.length === 0 ? 'Nothing to start yet' : `Start tracking ${plural(entries.length)}`}
         </Button>
-        <Button testID="guide-back" onPress={() => go(back(g))}>Back</Button>
-        <Button testID="guide-skip-setup" onPress={endSetup}>Skip setup</Button>
+        <Button {...touchButton} testID="guide-back" onPress={() => go(back(g))}>Back</Button>
+        <Button {...touchButton} testID="guide-skip-setup" onPress={endSetup}>Skip setup</Button>
       </KeyboardAwareScroll>
     );
   }
@@ -192,10 +193,10 @@ export function SetupGuide() {
       {notice !== null && <HelperText testID="guide-notice" type="error">{notice}</HelperText>}
 
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-        <Button testID="guide-back" onPress={() => go(back(g))}>Back</Button>
-        <Button testID="guide-edit" mode="outlined" onPress={() => setEditing({ ref: { kind: 'item', index: g.step - 1 } })}>Edit</Button>
-        <Button testID="guide-skip" mode="outlined" onPress={() => go(skipCurrent(g))}>Skip</Button>
-        <Button
+        <Button {...touchButton} testID="guide-back" onPress={() => go(back(g))}>Back</Button>
+        <Button {...touchButton} testID="guide-edit" mode="outlined" onPress={() => setEditing({ ref: { kind: 'item', index: g.step - 1 } })}>Edit</Button>
+        <Button {...touchButton} testID="guide-skip" mode="outlined" onPress={() => go(skipCurrent(g))}>Skip</Button>
+        <Button {...touchButton}
           testID="guide-keep"
           mode="contained"
           onPress={() => {
@@ -205,8 +206,8 @@ export function SetupGuide() {
           }}
         >Keep & next</Button>
       </View>
-      <Button testID="guide-skip-setup" onPress={endSetup}>Skip setup</Button>
-      <Button testID="guide-to-review" compact onPress={() => go(goToReview(g))}>Jump to review</Button>
+      <Button {...touchButton} testID="guide-skip-setup" onPress={endSetup}>Skip setup</Button>
+      <Button {...touchButton} testID="guide-to-review" compact onPress={() => go(goToReview(g))}>Jump to review</Button>
     </KeyboardAwareScroll>
   );
 }

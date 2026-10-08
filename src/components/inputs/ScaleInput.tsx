@@ -1,6 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
+import { touchButton } from '../touch';
 
 import type { Question } from '../../domain/question';
 import { scaleStart, scaleStep, stepValue } from '../../domain/stepper';
@@ -20,11 +21,11 @@ export function ScaleInput({ question, value, onChange }: Props) {
   return (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Button testID="scale-minus" accessibilityLabel="Decrease" compact mode="outlined" onPress={() => onChange(stepValue(value, -1, opts))}>−</Button>
+        <Button testID="scale-minus" accessibilityLabel="Decrease" compact mode="outlined" {...touchButton} onPress={() => onChange(stepValue(value, -1, opts))}>−</Button>
         <View style={{ flex: 1 }}>
           <Slider testID="scale-slider" value={value} min={min} max={max} step={step} start={opts.start} onChange={onChange} />
         </View>
-        <Button testID="scale-plus" accessibilityLabel="Increase" compact mode="outlined" onPress={() => onChange(stepValue(value, 1, opts))}>+</Button>
+        <Button testID="scale-plus" accessibilityLabel="Increase" compact mode="outlined" {...touchButton} onPress={() => onChange(stepValue(value, 1, opts))}>+</Button>
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text variant="labelSmall">{min}</Text>
@@ -32,7 +33,7 @@ export function ScaleInput({ question, value, onChange }: Props) {
         <Text variant="labelSmall">{max}</Text>
       </View>
       {value !== null && (
-        <Button testID="scale-skip" compact onPress={() => onChange(null)}>Skip</Button>
+        <Button testID="scale-skip" compact {...touchButton} onPress={() => onChange(null)}>Skip</Button>
       )}
     </View>
   );

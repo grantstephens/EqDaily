@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView } from 'react-native';
-import { ActivityIndicator, SegmentedButtons, Text } from 'react-native-paper';
+import { ScrollView, View } from 'react-native';
+import { ActivityIndicator, Button, Text } from 'react-native-paper';
+
+import { touchButton } from '../components/touch';
 
 import { InsightCard } from '../components/insights/InsightCard';
 import { PatternsCard } from '../components/insights/PatternsCard';
@@ -17,11 +19,11 @@ import { useTracker } from '../TrackerContext';
 
 interface CardData { question: Question; summary: Summary }
 
-const RANGES: { value: string; label: string; choice: RangeChoice }[] = [
-  { value: '7', label: '7 days', choice: 7 },
-  { value: '30', label: '30 days', choice: 30 },
-  { value: '90', label: '90 days', choice: 90 },
-  { value: 'all', label: 'All', choice: 'all' },
+const RANGES: { value: string; label: string; spoken: string; choice: RangeChoice }[] = [
+  { value: '7', label: '7d', spoken: '7 days', choice: 7 },
+  { value: '30', label: '30d', spoken: '30 days', choice: 30 },
+  { value: '90', label: '90d', spoken: '90 days', choice: 90 },
+  { value: 'all', label: 'All', spoken: 'All time', choice: 'all' },
 ];
 
 /** Insights: per-question graphs and summaries over a chosen window. */
@@ -63,11 +65,19 @@ export function InsightsScreen() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-      <SegmentedButtons
-        value={String(range)}
-        onValueChange={(v) => setRange(RANGES.find((r) => r.value === v)!.choice)}
-        buttons={RANGES.map((r) => ({ value: r.value, label: r.label, testID: `range-${r.value}` }))}
-      />
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        {RANGES.map((r) => (
+          <Button
+            key={r.value} {...touchButton} testID={`range-${r.value}`}
+            accessibilityLabel={String(range) === r.value ? `${r.spoken}, selected` : r.spoken}
+            compact labelStyle={{ marginHorizontal: 2 }}
+            mode={String(range) === r.value ? 'contained' : 'outlined'} style={{ flex: 1 }}
+            onPress={() => setRange(r.choice)}
+          >
+            {r.label}
+          </Button>
+        ))}
+      </View>
       {state === null && <ActivityIndicator style={{ marginTop: 32 }} />}
       {state?.empty && <Text>Nothing to show yet — answer some questions on Today.</Text>}
       {state && !state.empty && <StatsStrip streak={state.streak} week={state.week} />}

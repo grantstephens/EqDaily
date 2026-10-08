@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { ActivityIndicator, Button, Card, Text } from 'react-native-paper';
+import { touchButton } from '../components/touch';
 
 import { AnswerInput } from '../components/inputs/AnswerInput';
 import { KeyboardAwareScroll } from '../components/KeyboardAwareScroll';
@@ -113,9 +114,9 @@ export function TodayScreen() {
   return (
     <KeyboardAwareScroll contentContainerStyle={{ padding: 16, gap: 12 }} keyboardShouldPersistTaps="handled">
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Button testID="date-prev" accessibilityLabel="Previous day" compact onPress={() => setDate(addDays(date, -1))}>‹</Button>
+        <Button testID="date-prev" accessibilityLabel="Previous day" compact {...touchButton} onPress={() => setDate(addDays(date, -1))}>‹</Button>
         <Text variant="titleMedium">{displayDate(date)}</Text>
-        <Button testID="date-next" accessibilityLabel="Next day" compact disabled={isToday} onPress={() => setDate(addDays(date, 1))}>›</Button>
+        <Button testID="date-next" accessibilityLabel="Next day" compact {...touchButton} disabled={isToday} onPress={() => setDate(addDays(date, 1))}>›</Button>
       </View>
       {questions.length > 0 && <Text style={{ textAlign: 'center' }}>{`${answered} of ${questions.length} answered`}</Text>}
       {totalQuestions === 0 && <Text>No questions yet — add some in Settings → Questions.</Text>}

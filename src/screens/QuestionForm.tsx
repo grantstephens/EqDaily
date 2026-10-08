@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { Button, Chip, HelperText, Switch, Text, TextInput } from 'react-native-paper';
+import { touchButton, touchChip } from '../components/touch';
 import { KeyboardAwareScroll } from '../components/KeyboardAwareScroll';
 
 import {
@@ -114,7 +115,7 @@ export function QuestionForm({ initial, answered, usage, onSave, onCancel }: Pro
       <Text variant="labelLarge">Answer type</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {QUESTION_TYPES.map((t) => (
-          <Chip key={t} testID={`form-type-${t}`} selected={type === t} showSelectedCheck disabled={answered && type !== t}
+          <Chip {...touchChip} key={t} testID={`form-type-${t}`} selected={type === t} showSelectedCheck disabled={answered && type !== t}
             onPress={() => setType(t)}>{TYPE_LABELS[t]}</Chip>
         ))}
       </View>
@@ -141,7 +142,7 @@ export function QuestionForm({ initial, answered, usage, onSave, onCancel }: Pro
           <Text variant="labelLarge">Decimal places</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {[0, 1, 2, 3, 4].map((n) => (
-              <Chip key={n} testID={`decimals-${n}`} selected={decimals === n} onPress={() => setDecimals(n)}>{String(n)}</Chip>
+              <Chip {...touchChip} key={n} testID={`decimals-${n}`} selected={decimals === n} onPress={() => setDecimals(n)}>{String(n)}</Chip>
             ))}
           </View>
         </View>
@@ -163,11 +164,11 @@ export function QuestionForm({ initial, answered, usage, onSave, onCancel }: Pro
           <Text variant="labelLarge">Starting time</Text>
           <Text variant="bodySmall">Where the clock opens on a new day, e.g. your usual wake-up time.</Text>
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-            <Button testID="time-default" mode="outlined" icon="clock-outline" style={{ flex: 1 }}
+            <Button {...touchButton} testID="time-default" mode="outlined" icon="clock-outline" style={{ flex: 1 }}
               onPress={async () => { const t = await pickTime(defaultTime ?? null); if (t !== null) setDefaultTime(t); }}>
               {defaultTime ?? '22:00 (tap to change)'}
             </Button>
-            {defaultTime !== undefined && <Button testID="time-default-clear" compact onPress={() => setDefaultTime(undefined)}>Clear</Button>}
+            {defaultTime !== undefined && <Button {...touchButton} testID="time-default-clear" compact onPress={() => setDefaultTime(undefined)}>Clear</Button>}
           </View>
         </View>
       )}
@@ -176,14 +177,14 @@ export function QuestionForm({ initial, answered, usage, onSave, onCancel }: Pro
           <Text variant="labelLarge">Options</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {options.map((o) => (
-              <Chip key={o} testID={`option-remove-${o}`} onClose={() => setOptions(options.filter((x) => x !== o))}
+              <Chip {...touchChip} key={o} testID={`option-remove-${o}`} onClose={() => setOptions(options.filter((x) => x !== o))}
                 onPress={() => setOptions(options.filter((x) => x !== o))}>{learned.has(o) ? `${o} (added by you)` : o}</Chip>
             ))}
           </View>
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             <TextInput testID="option-new" label="Add an option" dense mode="outlined" style={{ flex: 1 }}
               value={newOption} onChangeText={(t) => { setNewOption(t); setOptionError(null); }} onSubmitEditing={addOption} />
-            <Button testID="option-add" mode="outlined" onPress={addOption}>Add</Button>
+            <Button {...touchButton} testID="option-add" mode="outlined" onPress={addOption}>Add</Button>
           </View>
           {optionError !== null && <HelperText testID="option-error" type="error">{optionError}</HelperText>}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -200,8 +201,8 @@ export function QuestionForm({ initial, answered, usage, onSave, onCancel }: Pro
 
       {error !== null && <HelperText testID="form-error" type="error">{error}</HelperText>}
       <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-end' }}>
-        <Button testID="form-cancel" onPress={onCancel} disabled={busy}>Cancel</Button>
-        <Button testID="form-save" mode="contained" onPress={submit} disabled={busy}>Save</Button>
+        <Button {...touchButton} testID="form-cancel" onPress={onCancel} disabled={busy}>Cancel</Button>
+        <Button {...touchButton} testID="form-save" mode="contained" onPress={submit} disabled={busy}>Save</Button>
       </View>
     </KeyboardAwareScroll>
   );

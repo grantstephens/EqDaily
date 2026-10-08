@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Button, Card, Text } from 'react-native-paper';
+import { touchButton } from '../components/touch';
 
 import type { NewQuestion, Question } from '../domain/question';
 import type { OptionUsage } from '../domain/store';
@@ -86,8 +87,8 @@ export function QuestionEditorScreen({ onClose }: { onClose: () => void }) {
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Button testID="editor-back" onPress={onClose}>Back</Button>
-        <Button testID="add-question" mode="contained" onPress={() => openEdit()}>Add question</Button>
+        <Button {...touchButton} testID="editor-back" onPress={onClose}>Back</Button>
+        <Button {...touchButton} testID="add-question" mode="contained" onPress={() => openEdit()}>Add question</Button>
       </View>
       {active.length === 0 && <Text>No questions yet. Add one to get started.</Text>}
       {active.map((q, i) => (
@@ -96,10 +97,10 @@ export function QuestionEditorScreen({ onClose }: { onClose: () => void }) {
             <Text variant="titleMedium">{q.label}</Text>
             <Text variant="labelSmall">{TYPE_LABELS[q.type]}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              <Button testID={`move-up-${q.id}`} accessibilityLabel={`Move ${q.label} up`} compact disabled={i === 0} onPress={() => move(i, -1)}>▲</Button>
-              <Button testID={`move-down-${q.id}`} accessibilityLabel={`Move ${q.label} down`} compact disabled={i === active.length - 1} onPress={() => move(i, 1)}>▼</Button>
-              <Button testID={`edit-${q.id}`} compact onPress={() => openEdit(q)}>Edit</Button>
-              <Button testID={`archive-${q.id}`} compact onPress={() => guarded(() => store.setArchived(q.id, true))}>Archive</Button>
+              <Button {...touchButton} testID={`move-up-${q.id}`} accessibilityLabel={`Move ${q.label} up`} compact disabled={i === 0} onPress={() => move(i, -1)}>▲</Button>
+              <Button {...touchButton} testID={`move-down-${q.id}`} accessibilityLabel={`Move ${q.label} down`} compact disabled={i === active.length - 1} onPress={() => move(i, 1)}>▼</Button>
+              <Button {...touchButton} testID={`edit-${q.id}`} compact onPress={() => openEdit(q)}>Edit</Button>
+              <Button {...touchButton} testID={`archive-${q.id}`} compact onPress={() => guarded(() => store.setArchived(q.id, true))}>Archive</Button>
             </View>
           </Card.Content>
         </Card>
@@ -109,7 +110,7 @@ export function QuestionEditorScreen({ onClose }: { onClose: () => void }) {
         <Card key={q.id}>
           <Card.Content style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text>{q.label}</Text>
-            <Button testID={`restore-${q.id}`} compact onPress={() => guarded(() => store.setArchived(q.id, false))}>Restore</Button>
+            <Button {...touchButton} testID={`restore-${q.id}`} compact onPress={() => guarded(() => store.setArchived(q.id, false))}>Restore</Button>
           </Card.Content>
         </Card>
       ))}

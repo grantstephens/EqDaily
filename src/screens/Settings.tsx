@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Platform, ScrollView, View } from 'react-native';
 import { Button, Divider, SegmentedButtons, Switch, Text } from 'react-native-paper';
+import { touchButton } from '../components/touch';
 
 import { exportBundle, exportFileName, formatRowError, importBundle } from '../csv/bundle';
 import { displayDate, today } from '../domain/date';
@@ -89,7 +90,7 @@ export function SettingsScreen() {
       <Text variant="titleLarge">Settings</Text>
 
       <Text variant="titleMedium">Questions</Text>
-      <Button testID="manage-questions" mode="contained-tonal" onPress={() => setEditing(true)}>Manage questions</Button>
+      <Button {...touchButton} testID="manage-questions" mode="contained-tonal" onPress={() => setEditing(true)}>Manage questions</Button>
       <Divider />
 
       <Text variant="titleMedium">Your data</Text>
@@ -101,12 +102,12 @@ export function SettingsScreen() {
         </Text>
       )}
       <Text>Everything stays on this device. Uninstalling the app deletes it, so export a backup first.</Text>
-      <Button testID="export-button" mode="contained-tonal" disabled={busy} onPress={doExport}>Export backup (.zip)</Button>
+      <Button {...touchButton} testID="export-button" mode="contained-tonal" disabled={busy} onPress={doExport}>Export backup (.zip)</Button>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text>Overwrite existing answers</Text>
         <Switch testID="overwrite-switch" value={overwrite} onValueChange={setOverwrite} />
       </View>
-      <Button testID="import-button" mode="contained-tonal" disabled={busy} onPress={doImport}>Import backup</Button>
+      <Button {...touchButton} testID="import-button" mode="contained-tonal" disabled={busy} onPress={doImport}>Import backup</Button>
 
       {Platform.OS !== 'web' && (
         <>

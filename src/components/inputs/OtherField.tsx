@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { Button, HelperText, TextInput } from 'react-native-paper';
+import { touchButton } from '../touch';
 
 import { MAX_OPTION } from '../../domain/question';
 
@@ -24,7 +25,7 @@ export function OtherField({ onAdd }: { onAdd: (text: string) => void }) {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <TextInput testID="other-input" dense mode="outlined" label="Other" style={{ flex: 1 }}
           value={text} onChangeText={(t) => { setText(t); setError(null); }} onSubmitEditing={add} />
-        <Button testID="other-add" mode="outlined" onPress={add}>Add</Button>
+        <Button testID="other-add" {...touchButton} mode="outlined" onPress={add}>Add</Button>
       </View>
       {error !== null && <HelperText testID="other-error" type="error">{error}</HelperText>}
     </View>

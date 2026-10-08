@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { Chip } from 'react-native-paper';
+import { touchChip } from '../touch';
 
 import { rankOptions } from '../../domain/options';
 import type { Question } from '../../domain/question';
@@ -23,11 +24,11 @@ export function ChoiceInput({ question, value, onChange, optionUsage }: Props) {
     <View style={{ gap: 8 }}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {[...listed, ...extras].map((o) => (
-          <Chip key={o} testID={`chip-${o}`} selected={value === o} showSelectedCheck
+          <Chip {...touchChip} key={o} testID={`chip-${o}`} selected={value === o} showSelectedCheck
             onPress={() => onChange(value === o ? null : o)}>{o}</Chip>
         ))}
         {!expanded && more.length > 0 && (
-          <Chip testID="chip-more" onPress={() => setExpanded(true)}>{`More (${more.length})`}</Chip>
+          <Chip {...touchChip} testID="chip-more" onPress={() => setExpanded(true)}>{`More (${more.length})`}</Chip>
         )}
       </View>
       {question.config.allowOther && (

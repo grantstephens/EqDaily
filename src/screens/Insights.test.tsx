@@ -279,3 +279,26 @@ test('number, time, checkbox and text cards never get a heatmap', async () => {
   await screen.findByText('Water');
   expect(screen.queryByTestId('heatmap')).toBeNull();
 });
+
+test('the range buttons use short labels that fit a narrow phone, with the full words for screen readers', async () => {
+  const h = await seeded();
+  await render(h.wrap(<InsightsScreen />));
+  await screen.findByText('Mood');
+  for (const [id, short, full] of [['7', '7d', '7 days'], ['30', '30d', '30 days'], ['90', '90d', '90 days'], ['all', 'All', 'All time']]) {
+    const b = screen.getByTestId(`range-${id}`);
+    expect(b).toHaveTextContent(short!);
+    expect(b.props.accessibilityLabel).toBe(id === '30' ? `${full}, selected` : full); // 30 days is the default range
+  }
+});
+
+test('the selected range is spoken as selected, and that follows the choice', async () => {
+  const h = await seeded();
+  await render(h.wrap(<InsightsScreen />));
+  await screen.findByText('Mood');
+  expect(screen.getByTestId('range-30').props.accessibilityLabel).toBe('30 days, selected');
+  expect(screen.getByTestId('range-7').props.accessibilityLabel).toBe('7 days');
+  await fireEvent.press(screen.getByTestId('range-7'));
+  await screen.findAllByText('3 of 7 days answered');
+  expect(screen.getByTestId('range-7').props.accessibilityLabel).toBe('7 days, selected');
+  expect(screen.getByTestId('range-30').props.accessibilityLabel).toBe('30 days');
+});

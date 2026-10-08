@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { Button, Chip } from 'react-native-paper';
+import { touchButton, touchChip } from '../touch';
 
 import { rankOptions } from '../../domain/options';
 import type { Question } from '../../domain/question';
@@ -29,12 +30,12 @@ export function CheckboxesInput({ question, value, onChange, optionUsage }: Prop
     <View style={{ gap: 8 }}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {[...listed, ...extras].map((o) => (
-          <Chip key={o} testID={`chip-${o}`} selected={selected.includes(o)} showSelectedCheck onPress={() => toggle(o)}>{o}</Chip>
+          <Chip {...touchChip} key={o} testID={`chip-${o}`} selected={selected.includes(o)} showSelectedCheck onPress={() => toggle(o)}>{o}</Chip>
         ))}
         {!expanded && more.length > 0 && (
-          <Chip testID="chip-more" onPress={() => setExpanded(true)}>{`More (${more.length})`}</Chip>
+          <Chip {...touchChip} testID="chip-more" onPress={() => setExpanded(true)}>{`More (${more.length})`}</Chip>
         )}
-        <Chip testID="chip-none" selected={value !== null && value.length === 0} showSelectedCheck
+        <Chip {...touchChip} testID="chip-none" selected={value !== null && value.length === 0} showSelectedCheck
           onPress={() => { if (!(value !== null && value.length === 0)) onChange([]); }}>None</Chip>
       </View>
       {question.config.allowOther && (
@@ -44,7 +45,7 @@ export function CheckboxesInput({ question, value, onChange, optionUsage }: Prop
           if (!selected.includes(t)) onChange([...selected, t]);
         }} />
       )}
-      {value !== null && <Button testID="checks-skip" compact onPress={() => onChange(null)}>Skip</Button>}
+      {value !== null && <Button testID="checks-skip" compact {...touchButton} onPress={() => onChange(null)}>Skip</Button>}
     </View>
   );
 }

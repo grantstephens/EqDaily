@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
+import { touchButton } from '../touch';
 
 import type { Question } from '../../domain/question';
 import { parseLooseNumber } from '../../domain/looseNumber';
@@ -40,7 +41,7 @@ export function NumberInput({ question, value, onChange }: Props) {
 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <Button testID="number-minus" accessibilityLabel="Decrease" compact mode="outlined" onPress={() => onChange(stepValue(value, -1, opts))}>−</Button>
+      <Button testID="number-minus" accessibilityLabel="Decrease" compact mode="outlined" {...touchButton} onPress={() => onChange(stepValue(value, -1, opts))}>−</Button>
       <TextInput
         testID="number-input"
         dense
@@ -52,9 +53,9 @@ export function NumberInput({ question, value, onChange }: Props) {
         onBlur={commit}
         onSubmitEditing={commit}
       />
-      <Button testID="number-plus" accessibilityLabel="Increase" compact mode="outlined" onPress={() => onChange(stepValue(value, 1, opts))}>+</Button>
+      <Button testID="number-plus" accessibilityLabel="Increase" compact mode="outlined" {...touchButton} onPress={() => onChange(stepValue(value, 1, opts))}>+</Button>
       {unit ? <Text>{unit}</Text> : null}
-      {value !== null && <Button testID="number-skip" compact onPress={() => onChange(null)}>Skip</Button>}
+      {value !== null && <Button testID="number-skip" compact {...touchButton} onPress={() => onChange(null)}>Skip</Button>}
     </View>
   );
 }
