@@ -354,6 +354,24 @@ describe('time', () => {
     await press('time-plus');
     expect(onChange).toHaveBeenCalledWith('07:00');
   });
+  test('Reset puts the answer back on the question default', async () => {
+    const q = { ...timeQ, config: { defaultTime: '07:00' } } as Question;
+    const onChange = await show(q, '09:40');
+    await press('time-reset');
+    expect(onChange).toHaveBeenCalledWith('07:00');
+  });
+  test('Reset falls back to 22:00 without a configured default', async () => {
+    const onChange = await show(timeQ, '09:40');
+    await press('time-reset');
+    expect(onChange).toHaveBeenCalledWith('22:00');
+  });
+  test('Reset is hidden when there is no answer or it already is the default', async () => {
+    const q = { ...timeQ, config: { defaultTime: '07:00' } } as Question;
+    await show(q, null);
+    expect(screen.queryByTestId('time-reset')).toBeNull();
+    await show(q, '07:00');
+    expect(screen.queryByTestId('time-reset')).toBeNull();
+  });
   test('Skip only shows with a value and clears it', async () => {
     const onChange = await show(timeQ, '08:00');
     await press('time-skip');

@@ -167,7 +167,7 @@ export function QuestionForm({ initial, answered, usage, onSave, onCancel }: Pro
               onPress={async () => { const t = await pickTime(defaultTime ?? null); if (t !== null) setDefaultTime(t); }}>
               {defaultTime ?? '22:00 (tap to change)'}
             </Button>
-            {defaultTime !== undefined && <Button testID="time-default-clear" compact onPress={() => setDefaultTime(undefined)}>Reset</Button>}
+            {defaultTime !== undefined && <Button testID="time-default-clear" compact onPress={() => setDefaultTime(undefined)}>Clear</Button>}
           </View>
         </View>
       )}
