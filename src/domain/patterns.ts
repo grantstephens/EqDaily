@@ -2,7 +2,7 @@
 import { addDays, type JournalDate } from './date';
 import { mean, welch } from './patternStats';
 import type { Answer, Question } from './question';
-import { timeToMinutes, unwrapTimes } from './time';
+import { minutesToTime, timeToMinutes, unwrapTimes } from './time';
 
 /** A comparison group needs this many days of an option before it is worth testing. */
 export const MIN_OPTION_DAYS = 5;
@@ -216,4 +216,38 @@ export function findPatternsWithFallback(
   const r = findPatterns(questions, answers, windowDates);
   if (r.status !== 'insufficient' || allDates.length <= windowDates.length) return r;
   return findPatterns(questions, answers, allDates);
+}
+
+function formatValue(type: 'scale' | 'number' | 'time', v: number, unit?: string): string {
+  if (type === 'time') return minutesToTime(v);
+  return unit ? `${v.toFixed(1)} ${unit}` : v.toFixed(1);
+}
+
+/** describePattern writes one finding as a sentence. Correlation, never causation. */
+export function describePattern(p: Pattern): string {
+  const s = p.signal;
+  let cond: string;
+  let other: string;
+  if (s.derived === 'high') {
+    cond = `${s.label} was ${s.sourceType === 'time' ? 'later' : 'higher'} than usual`;
+    other = 'when it was not';
+  } else if (s.option !== undefined) {
+    cond = `you picked "${s.option}" for ${s.label}`;
+    other = 'on other days';
+  } else {
+    cond = `${s.label} was Yes`;
+    other = 'when it was No';
+  }
+  const lead = p.lag === 0 ? `On days ${cond}` : `The day after ${cond}`;
+
+  const extra: string[] = [];
+  if (p.outcome.type === 'time') {
+    const gap = Math.round(p.onMean - p.offMean);
+    if (gap !== 0) extra.push(`${Math.abs(gap)} min ${gap > 0 ? 'later' : 'earlier'}`);
+  }
+  extra.push(`${p.onDays + p.offDays} days`);
+
+  const on = formatValue(p.outcome.type, p.onMean, p.outcome.unit);
+  const off = formatValue(p.outcome.type, p.offMean, p.outcome.unit);
+  return `${lead}, ${p.outcome.label} averages ${on} vs ${off} ${other} (${extra.join(', ')}).`;
 }

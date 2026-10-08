@@ -1,6 +1,6 @@
 // src/domain/patterns.test.ts
 import { addDays } from './date';
-import { buildSignals, findPatterns, findPatternsWithFallback } from './patterns';
+import { buildSignals, describePattern, findPatterns, findPatternsWithFallback, type Pattern } from './patterns';
 import type { Answer, Question } from './question';
 
 const base = { hideFromInsights: false, sort: 0, archivedAt: null, created: 'T' };
@@ -311,5 +311,49 @@ describe('findPatternsWithFallback', () => {
   test('stays insufficient when even all data is too little', () => {
     const all = span(6);
     expect(findPatternsWithFallback([mood, ex], [], all.slice(-3), all).status).toBe('insufficient');
+  });
+});
+
+const pat = (over: Partial<Pattern> = {}): Pattern => ({
+  signal: { questionId: 2, label: 'Exercise', sourceType: 'yesno' },
+  outcome: { questionId: 1, label: 'Mood', type: 'scale' },
+  lag: 0, onMean: 7.4, offMean: 5.8, onDays: 15, offDays: 16, d: 1.2,
+  ...over,
+});
+
+describe('describePattern', () => {
+  test('yes/no, same day', () => {
+    expect(describePattern(pat())).toBe('On days Exercise was Yes, Mood averages 7.4 vs 5.8 when it was No (31 days).');
+  });
+  test('next day', () => {
+    expect(describePattern(pat({ lag: 1 }))).toBe('The day after Exercise was Yes, Mood averages 7.4 vs 5.8 when it was No (31 days).');
+  });
+  test('an option of a checkbox or choice question', () => {
+    const p = pat({ signal: { questionId: 3, label: 'Symptoms', sourceType: 'checkboxes', option: 'Headache' }, onMean: 4.1, offMean: 6 });
+    expect(describePattern(p)).toBe('On days you picked "Headache" for Symptoms, Mood averages 4.1 vs 6.0 on other days (31 days).');
+    expect(describePattern({ ...p, lag: 1 })).toMatch(/^The day after you picked "Headache" for Symptoms, /);
+  });
+  test('higher than usual, and later than usual for a time question', () => {
+    const hi = pat({ signal: { questionId: 5, label: 'Water', sourceType: 'number', derived: 'high' } });
+    expect(describePattern(hi)).toMatch(/^On days Water was higher than usual, .* when it was not \(31 days\)\.$/);
+    const late = pat({ signal: { questionId: 4, label: 'Bedtime', sourceType: 'time', derived: 'high' }, lag: 1 });
+    expect(describePattern(late)).toMatch(/^The day after Bedtime was later than usual, /);
+  });
+  test('a number outcome carries its unit', () => {
+    const p = pat({ outcome: { questionId: 5, label: 'Water', type: 'number', unit: 'glasses' }, onMean: 6, offMean: 4 });
+    expect(describePattern(p)).toBe('On days Exercise was Yes, Water averages 6.0 glasses vs 4.0 glasses when it was No (31 days).');
+  });
+  test('a time outcome is shown as clock times with the gap', () => {
+    const p = pat({ outcome: { questionId: 4, label: 'Bedtime', type: 'time' }, onMean: 23 * 60 + 40, offMean: 23 * 60 + 15 });
+    expect(describePattern(p)).toBe('On days Exercise was Yes, Bedtime averages 23:40 vs 23:15 when it was No (25 min later, 31 days).');
+  });
+  test('a time outcome past midnight wraps to a clock time and reads "earlier" when lower', () => {
+    const p = pat({ outcome: { questionId: 4, label: 'Bedtime', type: 'time' }, onMean: 24 * 60 + 10, offMean: 24 * 60 + 40 });
+    expect(describePattern(p)).toBe('On days Exercise was Yes, Bedtime averages 00:10 vs 00:40 when it was No (30 min earlier, 31 days).');
+  });
+  test('a sub-minute time gap is not mentioned', () => {
+    const p = pat({ outcome: { questionId: 4, label: 'Bedtime', type: 'time' }, onMean: 23 * 60, offMean: 23 * 60 + 0.4 });
+    expect(describePattern(p)).not.toContain('earlier');
+    expect(describePattern(p)).not.toContain('later');
   });
 });
