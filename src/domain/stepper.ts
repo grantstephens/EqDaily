@@ -23,10 +23,10 @@ export function scaleStep(c: ScaleConfig): number {
 
 /**
  * stepTime moves an HH:MM by delta minutes, wrapping. Like the other steppers,
- * the first press from unanswered just sets the start value (22:00).
+ * the first press from unanswered just sets the start value (22:00, or the question's default time).
  */
-export function stepTime(current: string | null, delta: number): string {
-  if (current === null) return '22:00';
+export function stepTime(current: string | null, delta: number, start = '22:00'): string {
+  if (current === null) return start;
   return minutesToTime(timeToMinutes(current) + delta);
 }
 

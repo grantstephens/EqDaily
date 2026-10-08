@@ -8,6 +8,7 @@ import {
   type NewQuestion, type QuestionType,
 } from '../domain/question';
 import type { OptionUsage } from '../domain/store';
+import { pickTime } from '../platform/timePicker';
 import { TYPE_LABELS } from '../domain/typeLabels';
 
 interface Props {
@@ -44,6 +45,7 @@ export function QuestionForm({ initial, answered, usage, onSave, onCancel }: Pro
   const [decimals, setDecimals] = useState(initial?.type === 'number' ? cfg.decimals : 0);
   const [multiline, setMultiline] = useState(initial?.type === 'text' ? cfg.multiline : false);
   const [frequent, setFrequent] = useState(initial?.type === 'text' ? cfg.showFrequent : false);
+  const [defaultTime, setDefaultTime] = useState<string | undefined>(initial?.type === 'time' ? cfg.defaultTime : undefined);
   const [options, setOptions] = useState<string[]>(initialListed);
   const [allowOther, setAllowOther] = useState(hasOptions(initial?.type ?? 'yesno') ? cfg.allowOther : true);
   const [newOption, setNewOption] = useState('');
@@ -65,6 +67,8 @@ export function QuestionForm({ initial, answered, usage, onSave, onCancel }: Pro
       case 'checkboxes':
       case 'choice':
         return { ...base, type, config: { options: options.filter((o) => !learned.has(o)), allowOther } };
+      case 'time':
+        return { ...base, type, config: defaultTime === undefined ? {} : { defaultTime } };
       default:
         return { ...base, type, config: {} as never };
     }
@@ -151,6 +155,19 @@ export function QuestionForm({ initial, answered, usage, onSave, onCancel }: Pro
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text>Show most frequent entries on Insights</Text>
             <Switch testID="text-frequent" value={frequent} onValueChange={setFrequent} />
+          </View>
+        </View>
+      )}
+      {type === 'time' && (
+        <View style={{ gap: 4 }}>
+          <Text variant="labelLarge">Starting time</Text>
+          <Text variant="bodySmall">Where the clock opens on a new day, e.g. your usual wake-up time.</Text>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <Button testID="time-default" mode="outlined" icon="clock-outline" style={{ flex: 1 }}
+              onPress={async () => { const t = await pickTime(defaultTime ?? null); if (t !== null) setDefaultTime(t); }}>
+              {defaultTime ?? '22:00 (tap to change)'}
+            </Button>
+            {defaultTime !== undefined && <Button testID="time-default-clear" compact onPress={() => setDefaultTime(undefined)}>Reset</Button>}
           </View>
         </View>
       )}

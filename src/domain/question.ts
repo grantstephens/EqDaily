@@ -8,6 +8,8 @@ export interface ScaleConfig { min: number; max: number; step?: number }
 export interface NumberConfig { min?: number; max?: number; unit?: string; decimals: number }
 export interface TextConfig { multiline: boolean; showFrequent: boolean }
 export interface OptionsConfig { options: string[]; allowOther: boolean }
+/** defaultTime is where the clock and the +/-15 steppers start for an unanswered day. */
+export interface TimeConfig { defaultTime?: string }
 export type EmptyConfig = Record<string, never>;
 
 export type QuestionSpec =
@@ -17,7 +19,7 @@ export type QuestionSpec =
   | { type: 'text'; config: TextConfig }
   | { type: 'checkboxes'; config: OptionsConfig }
   | { type: 'choice'; config: OptionsConfig }
-  | { type: 'time'; config: EmptyConfig };
+  | { type: 'time'; config: TimeConfig };
 
 export type NewQuestion = { label: string; hideFromInsights: boolean } & QuestionSpec;
 export type Question = NewQuestion & {
@@ -76,6 +78,11 @@ export function validateQuestion(q: NewQuestion): string | null {
       if (min !== undefined && !isNum(min)) return 'min must be a number';
       if (max !== undefined && !isNum(max)) return 'max must be a number';
       if (min !== undefined && max !== undefined && min > max) return 'min must not exceed max';
+      return null;
+    }
+    case 'time': {
+      const d = q.config?.defaultTime;
+      if (d !== undefined && !(typeof d === 'string' && TIME_RE.test(d))) return 'default time must be HH:MM';
       return null;
     }
     case 'checkboxes':

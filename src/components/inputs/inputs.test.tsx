@@ -345,6 +345,15 @@ describe('time', () => {
     await press('time-plus');
     expect(onChange).toHaveBeenCalledWith('22:00');
   });
+  test('with a question default, the clock and +15 start there instead of 22:00', async () => {
+    mockPickTime.mockResolvedValueOnce(null);
+    const q = { ...timeQ, config: { defaultTime: '07:00' } } as Question;
+    const onChange = await show(q, null);
+    await press('time-pick');
+    expect(mockPickTime).toHaveBeenCalledWith('07:00');
+    await press('time-plus');
+    expect(onChange).toHaveBeenCalledWith('07:00');
+  });
   test('Skip only shows with a value and clears it', async () => {
     const onChange = await show(timeQ, '08:00');
     await press('time-skip');

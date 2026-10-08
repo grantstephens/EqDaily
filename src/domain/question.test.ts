@@ -152,3 +152,15 @@ describe('lockViolation decimals', () => {
     expect(lockViolation(num({ decimals: 2 }), num({ decimals: 0 }), false)).toBeNull();
   });
 });
+
+describe('time default', () => {
+  const withDefault = (defaultTime: unknown): NewQuestion =>
+    ({ label: 'Wake', type: 'time', config: { defaultTime } as never, hideFromInsights: false });
+  test('a valid HH:MM default is fine, and so is none', () => {
+    expect(validateQuestion(withDefault('07:00'))).toBeNull();
+    expect(validateQuestion(withDefault(undefined))).toBeNull();
+  });
+  test.each(['7:00', '25:00', 'abc', 700])('rejects %p', (v) => {
+    expect(validateQuestion(withDefault(v))).toMatch(/default time/);
+  });
+});

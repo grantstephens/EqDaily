@@ -44,3 +44,13 @@ describe('scaleStart', () => {
   test('honours a configured step', () => { expect(scaleStart({ min: 0, max: 1, step: 0.25 })).toBe(0.5); });
   test('never leaves the range', () => { expect(scaleStart({ min: 0, max: 1, step: 5 })).toBeLessThanOrEqual(1); });
 });
+
+describe('stepTime with a start', () => {
+  test('the first press from unanswered lands on the question default', () => {
+    expect(stepTime(null, 15, '07:00')).toBe('07:00');
+    expect(stepTime(null, -15, '07:00')).toBe('07:00');
+  });
+  test('an existing answer ignores the default', () => {
+    expect(stepTime('08:00', 15, '07:00')).toBe('08:15');
+  });
+});

@@ -5,6 +5,8 @@ import type { NewQuestion } from '../domain/question';
 import { makeHarness } from '../testing/harness';
 import { QuestionEditorScreen } from './QuestionEditor';
 
+const mockPickTime = jest.fn();
+jest.mock('../platform/timePicker', () => ({ pickTime: (...a: unknown[]) => mockPickTime(...a) }));
 jest.mock('../platform/confirm', () => ({ notify: jest.fn(async () => {}), confirm: jest.fn(async () => true) }));
 
 const yes: NewQuestion = { label: 'Exercise', type: 'yesno', config: {} as never, hideFromInsights: false };
@@ -20,6 +22,30 @@ async function open(seed: (h: Awaited<ReturnType<typeof makeHarness>>) => Promis
 }
 const press = (id: string) => fireEvent.press(screen.getByTestId(id));
 const type = (id: string, text: string) => fireEvent.changeText(screen.getByTestId(id), text);
+
+describe('time default', () => {
+  test('a time question can be given a default start time, and it is stored', async () => {
+    mockPickTime.mockResolvedValueOnce('07:00');
+    const h = await open();
+    await press('add-question');
+    await type('form-label', 'Wake up');
+    await press('form-type-time');
+    await press('time-default');
+    await waitFor(() => expect(screen.getByTestId('time-default')).toHaveTextContent(/07:00/));
+    await press('form-save');
+    await screen.findByText('Wake up');
+    const [q] = await h.store.listQuestions();
+    expect(q).toMatchObject({ type: 'time', config: { defaultTime: '07:00' } });
+  });
+  test('it can be cleared again, and is optional', async () => {
+    const h = await open(async (x) => { await x.store.addQuestion({ label: 'Wake', type: 'time', config: { defaultTime: '07:00' } as never, hideFromInsights: false }); });
+    await screen.findByText('Wake');
+    await press('edit-1');
+    await press('time-default-clear');
+    await press('form-save');
+    await waitFor(async () => expect((await h.store.listQuestions())[0]!.config).not.toHaveProperty('defaultTime'));
+  });
+});
 
 describe('adding', () => {
   test('a scale question with custom bounds appears in the list and is stored', async () => {

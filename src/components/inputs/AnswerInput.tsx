@@ -33,6 +33,6 @@ export function AnswerInput({ question, value, onChange, optionUsage }: Props) {
     case 'choice':
       return <ChoiceInput question={question} value={value as string | null} onChange={onChange} optionUsage={optionUsage} />;
     case 'time':
-      return <TimeInput value={value as string | null} onChange={onChange} />;
+      return <TimeInput value={value as string | null} onChange={onChange} start={question.config.defaultTime} />;
   }
 }
