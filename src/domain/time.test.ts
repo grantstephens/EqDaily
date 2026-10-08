@@ -34,3 +34,19 @@ describe('averageTime', () => {
   test('22:00 and 06:00 average to 02:00', () => { expect(averageTime([1320, 360])).toBe('02:00'); });
   test('empty is null', () => { expect(averageTime([])).toBeNull(); });
 });
+
+describe('clock dialog conversion', () => {
+  const { dateFromTime, timeFromDate } = require('./time');
+  test('a time becomes a local Date at that hour and minute', () => {
+    const d = dateFromTime('07:05', new Date(2026, 9, 8, 15, 30));
+    expect([d.getHours(), d.getMinutes(), d.getDate()]).toEqual([7, 5, 8]);
+  });
+  test('null starts the dialog at 22:00', () => {
+    const d = dateFromTime(null, new Date(2026, 9, 8));
+    expect([d.getHours(), d.getMinutes()]).toEqual([22, 0]);
+  });
+  test('a Date reads back as zero-padded HH:MM from its local fields', () => {
+    expect(timeFromDate(new Date(2026, 9, 8, 7, 5))).toBe('07:05');
+    expect(timeFromDate(new Date(2026, 9, 8, 0, 0))).toBe('00:00');
+  });
+});

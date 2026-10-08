@@ -39,3 +39,16 @@ export function averageTime(minutes: number[]): string | null {
   const u = unwrapTimes(minutes);
   return minutesToTime(u.reduce((a, b) => a + b, 0) / u.length);
 }
+
+/** dateFromTime is a local Date at HH:MM (22:00 when unset), for a native clock dialog. */
+export function dateFromTime(t: string | null, base: Date = new Date()): Date {
+  const m = t === null ? 22 * 60 : timeToMinutes(t);
+  const d = new Date(base);
+  d.setHours(Math.floor(m / 60), m % 60, 0, 0);
+  return d;
+}
+
+/** timeFromDate reads a Date's local hour and minute back as HH:MM. */
+export function timeFromDate(d: Date): string {
+  return minutesToTime(d.getHours() * 60 + d.getMinutes());
+}

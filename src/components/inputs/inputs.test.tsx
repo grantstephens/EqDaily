@@ -1,5 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import React from 'react';
+const mockPickTime = jest.fn();
+jest.mock('../../platform/timePicker', () => ({ pickTime: (...a: unknown[]) => mockPickTime(...a) }));
 import { StyleSheet } from 'react-native';
 
 import type { Question } from '../../domain/question';
@@ -311,18 +313,27 @@ describe('choice', () => {
 });
 
 describe('time', () => {
-  test('7:05 then blur emits 07:05', async () => {
+  test('tapping the time opens the clock and emits what was picked', async () => {
+    mockPickTime.mockResolvedValueOnce('07:05');
     const onChange = await show(timeQ, null);
-    await fireEvent.changeText(screen.getByTestId('time-input'), '7:05');
-    await fireEvent(screen.getByTestId('time-input'), 'blur');
+    await press('time-pick');
+    expect(mockPickTime).toHaveBeenCalledWith(null);
     expect(onChange).toHaveBeenCalledWith('07:05');
   });
-  test('25:00 emits nothing and reverts the text', async () => {
+  test('the clock starts from the current answer; cancelling emits nothing', async () => {
+    mockPickTime.mockResolvedValueOnce(null);
     const onChange = await show(timeQ, '08:00');
-    await fireEvent.changeText(screen.getByTestId('time-input'), '25:00');
-    await fireEvent(screen.getByTestId('time-input'), 'blur');
+    await press('time-pick');
+    expect(mockPickTime).toHaveBeenCalledWith('08:00');
     expect(onChange).not.toHaveBeenCalled();
-    expect(screen.getByTestId('time-input').props.value).toBe('08:00');
+  });
+  test('shows the answer', async () => {
+    await show(timeQ, '08:00');
+    expect(screen.getByTestId('time-pick')).toHaveTextContent(/08:00/);
+  });
+  test('prompts when there is no answer', async () => {
+    await show(timeQ, null);
+    expect(screen.getByTestId('time-pick')).toHaveTextContent(/set time/i);
   });
   test('+15 wraps past midnight', async () => {
     const onChange = await show(timeQ, '23:50');
@@ -334,7 +345,7 @@ describe('time', () => {
     await press('time-plus');
     expect(onChange).toHaveBeenCalledWith('22:00');
   });
-  test('Skip emits null', async () => {
+  test('Skip only shows with a value and clears it', async () => {
     const onChange = await show(timeQ, '08:00');
     await press('time-skip');
     expect(onChange).toHaveBeenCalledWith(null);
