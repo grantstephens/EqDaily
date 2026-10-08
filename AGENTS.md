@@ -29,7 +29,7 @@ Layered, dependencies pointing inward. Only `App.tsx` imports from `src/screens`
 
 | Directory | Role |
 |---|---|
-| `src/domain` | Pure logic, no React/Expo: dates, the question model and validation (`question.ts`), lock rules, answer normalisation (`planAnswerWrite`), option ranking, time maths, stepping, statistics (`stats.ts`), Patterns (`patterns.ts`, `patternStats.ts`), starter templates and the setup-guide state machine (`guide.ts`), import planning, and the `Store` interface. Runs in plain Node Jest. |
+| `src/domain` | Pure logic, no React/Expo: dates, the question model and validation (`question.ts`), lock rules, answer normalisation (`planAnswerWrite`), option ranking, time maths, stepping, statistics (`stats.ts`), Patterns (`patterns.ts`, `patternStats.ts`), streaks and the weekly summary (`streaks.ts`, `weekly.ts`), starter templates and the setup-guide state machine (`guide.ts`), import planning, and the `Store` interface. Runs in plain Node Jest. |
 | `src/storage` | `SqliteStore` (Android, via the `SqlDatabase` seam: `expo-sqlite` on device, `node:sqlite` in tests) and `IndexedDbStore` (web), both held to one behavioural contract (`storeContract.ts`) run against each. |
 | `src/csv` | `bundle.ts` zips `questions.csv` + `answers.csv`; `values.ts` encodes answer values; `format.ts` is the RFC 4180 reader/writer. |
 | `src/platform` | Per-target shims chosen by Metro's extension: file pick/save (bytes), dialogs, app foreground/background, theme preference, onboarding flag. |

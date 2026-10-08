@@ -292,9 +292,15 @@ describe('findPatterns', () => {
     const rnd = mulberry32(7);
     const answers: Answer[] = [];
     for (const q of qs) for (const day of d) answers.push(a(q, day, q.type === 'yesno' ? rnd() < 0.5 : Math.floor(rnd() * 11)));
-    const t0 = Date.now();
-    const r = findPatterns(qs, answers, d);
-    expect(Date.now() - t0).toBeLessThan(1200); // ~300ms alone, ~560ms under a parallel suite; the unoptimised loop took 2000+
+    // best of three: a loaded CI box slows one run, but a real regression slows all of them
+    let best = Infinity;
+    let r = findPatterns(qs, answers, d);
+    for (let i = 0; i < 3; i++) {
+      const t0 = Date.now();
+      r = findPatterns(qs, answers, d);
+      best = Math.min(best, Date.now() - t0);
+    }
+    expect(best).toBeLessThan(1200); // ~300ms alone; the unoptimised loop took 2000+
     if (r.status === 'found') expect(r.patterns.length).toBeLessThanOrEqual(3);
   });
 });

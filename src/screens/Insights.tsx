@@ -4,9 +4,12 @@ import { ActivityIndicator, SegmentedButtons, Text } from 'react-native-paper';
 
 import { InsightCard } from '../components/insights/InsightCard';
 import { PatternsCard } from '../components/insights/PatternsCard';
+import { StatsStrip } from '../components/insights/StatsStrip';
 import type { JournalDate } from '../domain/date';
 import { findPatternsWithFallback, type PatternsResult } from '../domain/patterns';
 import type { Question } from '../domain/question';
+import { currentStreak, longestStreak, yesStreak } from '../domain/streaks';
+import { weeklySummary, type WeeklySummary } from '../domain/weekly';
 import { previousDates, rangeDates, summarize, type RangeChoice, type Summary } from '../domain/stats';
 import { notify } from '../platform/confirm';
 import { useToday } from '../useToday';
@@ -26,7 +29,7 @@ export function InsightsScreen() {
   const { store, now, revision } = useTracker();
   const end = useToday(now);
   const [range, setRange] = useState<RangeChoice>(30);
-  const [state, setState] = useState<{ cards: CardData[]; dates: JournalDate[]; empty: boolean; patterns: PatternsResult } | null>(null);
+  const [state, setState] = useState<{ cards: CardData[]; dates: JournalDate[]; empty: boolean; patterns: PatternsResult; streak: { current: number; best: number }; week: WeeklySummary; yes: Map<number, number> } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,7 +44,16 @@ export function InsightsScreen() {
         const answers = await store.answersBetween(first !== null && first < from ? first : from, end);
         const cards = questions.map((question) => ({ question, summary: summarize(question, answers, dates, answers, prev) }));
         const patterns = findPatternsWithFallback(questions, answers, dates, allDates);
-        if (!cancelled) setState({ cards, dates, empty: questions.length === 0 || first === null, patterns });
+        const loggedDays = answers.map((x) => x.date);
+        const streak = { current: currentStreak(loggedDays, end), best: longestStreak(loggedDays) };
+        const week = weeklySummary(questions, answers, end);
+        const yes = new Map<number, number>();
+        for (const question of questions) {
+          if (question.type !== 'yesno') continue;
+          const values = new Map(answers.filter((x) => x.questionId === question.id).map((x) => [x.date, x.value === true] as const));
+          yes.set(question.id, yesStreak(values, end));
+        }
+        if (!cancelled) setState({ cards, dates, empty: questions.length === 0 || first === null, patterns, streak, week, yes });
       } catch (e) {
         await notify('Could not load Insights', e instanceof Error ? e.message : String(e));
       }
@@ -58,9 +70,10 @@ export function InsightsScreen() {
       />
       {state === null && <ActivityIndicator style={{ marginTop: 32 }} />}
       {state?.empty && <Text>Nothing to show yet — answer some questions on Today.</Text>}
+      {state && !state.empty && <StatsStrip streak={state.streak} week={state.week} />}
       {state && !state.empty && <PatternsCard result={state.patterns} />}
       {state && !state.empty && state.cards.map((c) => (
-        <InsightCard key={c.question.id} question={c.question} summary={c.summary} dates={state.dates} />
+        <InsightCard key={c.question.id} question={c.question} summary={c.summary} dates={state.dates} yesStreak={state.yes.get(c.question.id)} />
       ))}
     </ScrollView>
   );

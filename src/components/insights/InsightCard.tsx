@@ -9,9 +9,9 @@ import { BarList } from '../charts/BarList';
 import { DotStrip } from '../charts/DotStrip';
 import { LineChart } from '../charts/LineChart';
 
-interface Props { question: Question; summary: Summary; dates: string[] }
+interface Props { question: Question; summary: Summary; dates: string[]; yesStreak?: number }
 
-function Body({ summary, dates }: { summary: Summary; dates: string[] }) {
+function Body({ summary, dates, yesStreak }: { summary: Summary; dates: string[]; yesStreak?: number }) {
   switch (summary.kind) {
     case 'numeric': {
       const { average, change, unit, points, axisMin, axisMax } = summary;
@@ -43,6 +43,7 @@ function Body({ summary, dates }: { summary: Summary; dates: string[] }) {
       return (
         <View style={{ gap: 8 }}>
           <Text variant="headlineMedium">{`${Math.round(summary.percentYes!)}% yes`}</Text>
+          {yesStreak !== undefined && yesStreak >= 2 && <Text testID="yes-streak">{`${yesStreak} days in a row`}</Text>}
           <DotStrip days={summary.days} />
         </View>
       );
@@ -69,14 +70,14 @@ function Body({ summary, dates }: { summary: Summary; dates: string[] }) {
 }
 
 /** One Insights card: coverage line, then a body shaped by the question type. */
-export function InsightCard({ question, summary, dates }: Props) {
+export function InsightCard({ question, summary, dates, yesStreak }: Props) {
   const { answered, total } = summary.coverage;
   return (
     <Card>
       <Card.Content style={{ gap: 8 }}>
         <Text variant="titleMedium">{question.label}</Text>
         <Text variant="labelSmall">{`${answered} of ${total} days answered`}</Text>
-        {answered === 0 ? <Text>No answers in this period.</Text> : <Body summary={summary} dates={dates} />}
+        {answered === 0 ? <Text>No answers in this period.</Text> : <Body summary={summary} dates={dates} yesStreak={yesStreak} />}
       </Card.Content>
     </Card>
   );

@@ -180,3 +180,52 @@ test('only yes/no questions: explains what Patterns needs instead of "keep loggi
   expect(await screen.findByTestId('patterns-incomparable')).toHaveTextContent(/yes\/no.*slider/i);
   expect(screen.queryByTestId('patterns-insufficient')).toBeNull();
 });
+
+async function seededStreak() {
+  const h = await makeHarness(); // now = 2026-10-05
+  const s = h.store;
+  const mood = await s.addQuestion(q('Mood', 'scale', { min: 0, max: 10 }));
+  const ex = await s.addQuestion(q('Exercise', 'yesno', {}));
+  // 5 days in a row ending today (5 Oct), a gap, then 3 more days a week earlier
+  for (let i = 0; i < 5; i++) {
+    const day = addDays('2026-10-05', -i);
+    await s.setAnswer(day, mood.id, i < 3 ? 8 : 5);
+    await s.setAnswer(day, ex.id, i < 4);
+  }
+  for (let i = 7; i < 10; i++) {
+    const day = addDays('2026-10-05', -i);
+    await s.setAnswer(day, mood.id, 4);
+    await s.setAnswer(day, ex.id, true);
+  }
+  return h;
+}
+
+test('the strip shows the current and best streak, days logged this week, and what moved', async () => {
+  const h = await seededStreak();
+  await render(h.wrap(<InsightsScreen />));
+  expect(await screen.findByTestId('streak-current')).toHaveTextContent('5-day streak');
+  expect(screen.getByTestId('streak-best')).toHaveTextContent(/best/i);
+  expect(screen.getByTestId('week-logged')).toHaveTextContent('5 of 7 days logged');
+  expect(screen.getByTestId('week-logged')).toHaveTextContent('last week 3');
+});
+
+test('a yes/no card says how many days in a row, only when it is 2 or more', async () => {
+  const h = await seededStreak();
+  await render(h.wrap(<InsightsScreen />));
+  expect(await screen.findByTestId('yes-streak')).toHaveTextContent('4 days in a row');
+});
+
+test('the strip is not shown when there is nothing yet', async () => {
+  const h = await makeHarness();
+  await render(h.wrap(<InsightsScreen />));
+  await screen.findByText(/Nothing to show yet/);
+  expect(screen.queryByTestId('streak-current')).toBeNull();
+});
+
+test('with no streak right now, the strip says so rather than showing 0', async () => {
+  const h = await makeHarness();
+  const mood = await h.store.addQuestion(q('Mood', 'scale', { min: 0, max: 10 }));
+  await h.store.setAnswer('2026-09-20', mood.id, 5);
+  await render(h.wrap(<InsightsScreen />));
+  expect(await screen.findByTestId('streak-current')).toHaveTextContent(/no streak/i);
+});
