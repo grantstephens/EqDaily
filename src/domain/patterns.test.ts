@@ -1,6 +1,6 @@
 // src/domain/patterns.test.ts
 import { addDays } from './date';
-import { buildSignals } from './patterns';
+import { buildSignals, findPatterns, findPatternsWithFallback } from './patterns';
 import type { Answer, Question } from './question';
 
 const base = { hideFromInsights: false, sort: 0, archivedAt: null, created: 'T' };
@@ -84,6 +84,15 @@ describe('buildSignals', () => {
     expect(high.days.get(d[4]!)).toBe(false); // 5 < 5.5
   });
 
+  test('tied values at the median still split the days (the majority value is "high" when nothing is above it)', () => {
+    const d = span(10);
+    const answers = d.map((day, i) => a(mood, day, i < 7 ? 8 : 4)); // median is 8: nothing is strictly above it
+    const high = buildSignals([mood], answers, d).binary.find((s) => s.derived === 'high')!;
+    expect([...high.days.values()].filter(Boolean)).toHaveLength(7);
+    expect(high.days.get(d[0]!)).toBe(true);
+    expect(high.days.get(d[9]!)).toBe(false);
+  });
+
   test('fewer than 10 numeric answers: no "high" signal', () => {
     const d = span(9);
     const { binary } = buildSignals([mood], d.map((day, i) => a(mood, day, i)), d);
@@ -95,5 +104,212 @@ describe('buildSignals', () => {
     const answers = d.map((day, i) => a(bed, day, `${String(21 + (i % 4)).padStart(2, '0')}:00`));
     const high = buildSignals([bed], answers, d).binary.find((s) => s.derived === 'high')!;
     expect(high.sourceType).toBe('time');
+  });
+});
+
+// deterministic PRNG so "random" data is reproducible
+function mulberry32(seed: number) {
+  return () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const flagsFor = (n: number, seed = 11) => { const r = mulberry32(seed); return Array.from({ length: n }, () => r() < 0.5); };
+const jitter = (i: number) => ((i * 7) % 5 - 2) * 0.2; // small deterministic wobble
+
+describe('findPatterns', () => {
+  test('a planted same-day effect is found', () => {
+    const d = span(40);
+    const answers: Answer[] = [];
+    const F = flagsFor(d.length);
+    d.forEach((day, i) => {
+      const yes = F[i]!;
+      answers.push(a(ex, day, yes), a(mood, day, (yes ? 8 : 5) + jitter(i)));
+    });
+    const r = findPatterns([mood, ex], answers, d);
+    expect(r.status).toBe('found');
+    if (r.status !== 'found') return;
+    const p = r.patterns[0]!;
+    expect(p.signal.label).toBe('Exercise');
+    expect(p.outcome.label).toBe('Mood');
+    expect(p.lag).toBe(0);
+    expect(p.onMean).toBeGreaterThan(p.offMean);
+    expect(p.onDays + p.offDays).toBe(40);
+  });
+
+  test('a planted next-day effect is found with lag 1', () => {
+    const d = span(40);
+    const answers: Answer[] = [];
+    const F = flagsFor(d.length);
+    d.forEach((day, i) => {
+      const yes = F[i]!;
+      answers.push(a(ex, day, yes));
+      const prevYes = i > 0 && F[i - 1]!;
+      answers.push(a(mood, day, (prevYes ? 8 : 5) + jitter(i)));
+    });
+    const r = findPatterns([mood, ex], answers, d);
+    expect(r.status).toBe('found');
+    if (r.status !== 'found') return;
+    expect(r.patterns[0]!.lag).toBe(1);
+  });
+
+  test('lag-1 pairing crosses a month boundary using real calendar days', () => {
+    const d = span(40, '2026-10-01'); // runs through 1 Nov and beyond
+    const answers: Answer[] = [];
+    const F = flagsFor(d.length);
+    d.forEach((day, i) => {
+      const yes = F[i]!;
+      answers.push(a(ex, day, yes));
+      const prevYes = i > 0 && F[i - 1]!;
+      answers.push(a(mood, day, (prevYes ? 8 : 5) + jitter(i)));
+    });
+    const r = findPatterns([mood, ex], answers, d);
+    expect(r.status === 'found' && r.patterns[0]!.lag).toBe(1);
+  });
+
+  test('skipped days are never counted as "no"', () => {
+    const d = span(40);
+    const answers: Answer[] = [];
+    d.forEach((day, i) => {
+      const yes = i % 2 === 0;
+      if (yes) answers.push(a(ex, day, true)); // "no" days are skipped, not answered false
+      answers.push(a(mood, day, (yes ? 8 : 5) + jitter(i)));
+    });
+    // only "yes" days have an answer, so there is no "off" group at all
+    expect(findPatterns([mood, ex], answers, d).status).toBe('insufficient');
+  });
+
+  test('fewer than 14 paired days is insufficient', () => {
+    const d = span(12);
+    const answers: Answer[] = [];
+    d.forEach((day, i) => answers.push(a(ex, day, i % 2 === 0), a(mood, day, i % 2 === 0 ? 8 : 5)));
+    expect(findPatterns([mood, ex], answers, d).status).toBe('insufficient');
+  });
+
+  test('fewer than 5 days on one side is insufficient', () => {
+    const d = span(30);
+    const answers: Answer[] = [];
+    d.forEach((day, i) => answers.push(a(ex, day, i < 4), a(mood, day, i < 4 ? 9 : 4 + jitter(i))));
+    expect(findPatterns([mood, ex], answers, d).status).toBe('insufficient');
+  });
+
+  test('no data and no questions are insufficient, never an error', () => {
+    expect(findPatterns([], [], span(5)).status).toBe('insufficient');
+    expect(findPatterns([mood, ex], [], span(30)).status).toBe('insufficient');
+    expect(findPatterns([mood, ex], [], []).status).toBe('insufficient');
+  });
+
+  test('an answer that never varies yields no finding and no NaN', () => {
+    const d = span(30);
+    const answers: Answer[] = [];
+    d.forEach((day, i) => answers.push(a(ex, day, true), a(mood, day, 5 + jitter(i))));
+    expect(findPatterns([mood, ex], answers, d).status).toBe('insufficient'); // no "off" days
+    const constant: Answer[] = [];
+    d.forEach((day, i) => constant.push(a(ex, day, i % 2 === 0), a(mood, day, 5)));
+    const r = findPatterns([mood, ex], constant, d);
+    expect(r.status).toBe('insufficient'); // both groups constant: welch is null, nothing ran
+  });
+
+  test('comparable data with no real link reports "none"', () => {
+    const d = span(40);
+    const flat: Answer[] = [];
+    d.forEach((day, i) => flat.push(a(ex, day, i % 2 === 0), a(mood, day, i % 4 < 2 ? 4 : 6))); // balanced across both groups
+    expect(findPatterns([mood, ex], flat, d).status).toBe('none');
+  });
+
+  test('hidden questions never appear in findings', () => {
+    const d = span(40);
+    const hiddenEx = { ...ex, hideFromInsights: true };
+    const answers: Answer[] = [];
+    d.forEach((day, i) => answers.push(a(hiddenEx, day, i % 2 === 0), a(mood, day, (i % 2 === 0 ? 8 : 5) + jitter(i))));
+    expect(findPatterns([mood, hiddenEx], answers, d).status).toBe('insufficient');
+  });
+
+  test('late bedtime followed by a lower mood next day is found via the time series', () => {
+    const d = span(40);
+    const answers: Answer[] = [];
+    const F = flagsFor(d.length, 5);
+    d.forEach((day, i) => {
+      const late = F[i]!;
+      answers.push(a(bed, day, late ? '01:00' : '22:30'));
+      const prevLate = i > 0 && F[i - 1]!;
+      answers.push(a(mood, day, (prevLate ? 4 : 7) + jitter(i)));
+    });
+    const r = findPatterns([mood, bed], answers, d);
+    expect(r.status).toBe('found');
+    if (r.status !== 'found') return;
+    const p = r.patterns.find((x) => x.signal.label === 'Bedtime' && x.outcome.label === 'Mood' && x.lag === 1)!;
+    expect(p.signal.derived).toBe('high');
+    expect(p.onMean).toBeLessThan(p.offMean);
+  });
+
+  test('keeps at most 3 findings, at most one per question pair, strongest first', () => {
+    const d = span(40);
+    const qs: Question[] = [mood, water, ex];
+    const answers: Answer[] = [];
+    const F = flagsFor(d.length, 3);
+    d.forEach((day, i) => {
+      const yes = F[i]!;
+      answers.push(a(ex, day, yes), a(mood, day, (yes ? 8 : 5) + jitter(i)), a(water, day, (yes ? 7 : 3) + jitter(i + 2)));
+    });
+    const r = findPatterns(qs, answers, d);
+    expect(r.status).toBe('found');
+    if (r.status !== 'found') return;
+    expect(r.patterns.length).toBeLessThanOrEqual(3);
+    const pairs = r.patterns.map((p) => `${p.signal.questionId}>${p.outcome.questionId}`);
+    expect(new Set(pairs).size).toBe(pairs.length);
+    const ds = r.patterns.map((p) => Math.abs(p.d));
+    expect([...ds].sort((x, y) => y - x)).toEqual(ds);
+  });
+
+  test('pure noise almost never produces a finding (multiple-testing correction works)', () => {
+    let hits = 0;
+    const runs = 300;
+    for (let seed = 1; seed <= runs; seed++) {
+      const rnd = mulberry32(seed);
+      const d = span(40);
+      const answers: Answer[] = [];
+      d.forEach((day) => {
+        answers.push(a(ex, day, rnd() < 0.5));
+        answers.push(a(mood, day, Math.floor(rnd() * 11)));
+        answers.push(a(water, day, Math.floor(rnd() * 9)));
+        answers.push(a(bed, day, `${String(Math.floor(21 + rnd() * 5) % 24).padStart(2, '0')}:00`));
+        answers.push(a(sym, day, rnd() < 0.4 ? ['Headache'] : []));
+      });
+      if (findPatterns([mood, ex, water, bed, sym], answers, d).status === 'found') hits++;
+    }
+    // Family-wise error is held at about 5% (measured 5.0% over 1000 runs); expect ~15 of 300.
+    // Uncorrected, this would be several times higher, so 27 (9%) still catches a broken correction.
+    expect(hits).toBeLessThanOrEqual(27);
+  });
+
+  test('a large history stays fast', () => {
+    const qs: Question[] = Array.from({ length: 100 }, (_, i) =>
+      ({ ...base, id: 100 + i, label: `Q${i}`, type: i % 2 === 0 ? 'yesno' : 'scale', config: (i % 2 === 0 ? {} : { min: 0, max: 10 }) as never }));
+    const d = span(200);
+    const rnd = mulberry32(7);
+    const answers: Answer[] = [];
+    for (const q of qs) for (const day of d) answers.push(a(q, day, q.type === 'yesno' ? rnd() < 0.5 : Math.floor(rnd() * 11)));
+    const t0 = Date.now();
+    const r = findPatterns(qs, answers, d);
+    expect(Date.now() - t0).toBeLessThan(2000);
+    if (r.status === 'found') expect(r.patterns.length).toBeLessThanOrEqual(3);
+  });
+});
+
+describe('findPatternsWithFallback', () => {
+  test('uses all data when the chosen window is too short to compare', () => {
+    const all = span(40);
+    const answers: Answer[] = [];
+    all.forEach((day, i) => answers.push(a(ex, day, i % 2 === 0), a(mood, day, (i % 2 === 0 ? 8 : 5) + jitter(i))));
+    const shortWindow = all.slice(-7);
+    expect(findPatterns([mood, ex], answers, shortWindow).status).toBe('insufficient');
+    expect(findPatternsWithFallback([mood, ex], answers, shortWindow, all).status).toBe('found');
+  });
+  test('stays insufficient when even all data is too little', () => {
+    const all = span(6);
+    expect(findPatternsWithFallback([mood, ex], [], all.slice(-3), all).status).toBe('insufficient');
   });
 });

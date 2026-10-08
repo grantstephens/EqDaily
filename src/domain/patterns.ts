@@ -1,5 +1,6 @@
 // src/domain/patterns.ts
-import type { JournalDate } from './date';
+import { addDays, type JournalDate } from './date';
+import { mean, welch } from './patternStats';
 import type { Answer, Question } from './question';
 import { timeToMinutes, unwrapTimes } from './time';
 
@@ -55,10 +56,16 @@ export function buildSignals(
 
     const addHigh = (series: NumericSeries, sourceType: SourceType) => {
       if (rows.length < MIN_HIGH_DAYS) return;
-      const m = median([...series.values.values()]);
+      const values = [...series.values.values()];
+      const m = median(values);
+      // Discrete answers tie at the median. Split strictly above it, or at-or-above
+      // it, whichever leaves the groups closest to half and half.
+      const above = values.filter((v) => v > m).length;
+      const atOrAbove = values.filter((v) => v >= m).length;
+      const strict = Math.abs(above / values.length - 0.5) <= Math.abs(atOrAbove / values.length - 0.5);
       binary.push({
         questionId: q.id, label: q.label, sourceType, derived: 'high',
-        days: new Map([...series.values].map(([date, v]) => [date, v > m])),
+        days: new Map([...series.values].map(([date, v]) => [date, strict ? v > m : v >= m])),
       });
     };
 
@@ -109,4 +116,104 @@ export function buildSignals(
     }
   }
   return { binary, numeric };
+}
+
+/** Each side of a comparison needs this many days. */
+export const MIN_SIDE = 5;
+/** And the two sides together this many. */
+export const MIN_PAIRED = 14;
+/** Cohen's d must be at least this large (in either direction). */
+export const MIN_EFFECT = 0.5;
+/** Family-wise error rate; divided by the number of comparisons actually run. */
+export const ALPHA = 0.05;
+export const MAX_PATTERNS = 3;
+
+export interface Pattern {
+  signal: { questionId: number; label: string; sourceType: SourceType; option?: string; derived?: 'high' };
+  outcome: { questionId: number; label: string; type: 'scale' | 'number' | 'time'; unit?: string };
+  lag: 0 | 1;
+  onMean: number;
+  offMean: number;
+  onDays: number;
+  offDays: number;
+  /** Cohen's d for on minus off. */
+  d: number;
+}
+
+export type PatternsResult =
+  | { status: 'insufficient' }
+  | { status: 'none' }
+  | { status: 'found'; patterns: Pattern[] };
+
+interface Candidate { pattern: Pattern; p: number }
+
+/**
+ * findPatterns compares every on/off signal with every numeric outcome from a
+ * different question, on the same day and on the following day. A comparison
+ * only uses dates where both values exist. Findings must have a meaningful
+ * effect size and survive a Bonferroni correction for the number of comparisons
+ * actually run; at most one per (signal question, outcome question) pair, at
+ * most MAX_PATTERNS overall, strongest first. `dates` must be consecutive days.
+ */
+export function findPatterns(questions: Question[], answers: Answer[], dates: JournalDate[]): PatternsResult {
+  const { binary, numeric } = buildSignals(questions, answers, dates);
+  const candidates: Candidate[] = [];
+  let run = 0;
+
+  for (const s of binary) {
+    for (const o of numeric) {
+      if (s.questionId === o.questionId) continue;
+      for (const lag of [0, 1] as const) {
+        const on: number[] = [];
+        const off: number[] = [];
+        for (const [date, flag] of s.days) {
+          const v = o.values.get(lag === 0 ? date : addDays(date, 1));
+          if (v === undefined) continue;
+          (flag ? on : off).push(v);
+        }
+        if (on.length < MIN_SIDE || off.length < MIN_SIDE || on.length + off.length < MIN_PAIRED) continue;
+        const w = welch(on, off);
+        if (w === null) continue;
+        run++;
+        candidates.push({
+          p: w.p,
+          pattern: {
+            signal: { questionId: s.questionId, label: s.label, sourceType: s.sourceType, option: s.option, derived: s.derived },
+            outcome: { questionId: o.questionId, label: o.label, type: o.type, unit: o.unit },
+            lag, onMean: mean(on), offMean: mean(off), onDays: on.length, offDays: off.length, d: w.d,
+          },
+        });
+      }
+    }
+  }
+  if (run === 0) return { status: 'insufficient' };
+
+  const alpha = ALPHA / run;
+  const strong = candidates
+    .filter((c) => Math.abs(c.pattern.d) >= MIN_EFFECT && c.p < alpha)
+    .sort((x, y) => Math.abs(y.pattern.d) - Math.abs(x.pattern.d) || y.pattern.onDays + y.pattern.offDays - x.pattern.onDays - x.pattern.offDays)
+    .map((c) => c.pattern);
+
+  const chosen: Pattern[] = [];
+  const key = (p: Pattern) => `${p.signal.questionId}>${p.outcome.questionId}`;
+  const reverse = (p: Pattern) => `${p.outcome.questionId}>${p.signal.questionId}`;
+  for (const p of strong) {
+    if (chosen.some((c) => key(c) === key(p))) continue;
+    if (p.lag === 0 && chosen.some((c) => c.lag === 0 && key(c) === reverse(p))) continue;
+    chosen.push(p);
+    if (chosen.length === MAX_PATTERNS) break;
+  }
+  return chosen.length === 0 ? { status: 'none' } : { status: 'found', patterns: chosen };
+}
+
+/**
+ * findPatternsWithFallback uses the chosen window, but when that has too little
+ * data to compare anything it looks at all of the user's data instead.
+ */
+export function findPatternsWithFallback(
+  questions: Question[], answers: Answer[], windowDates: JournalDate[], allDates: JournalDate[],
+): PatternsResult {
+  const r = findPatterns(questions, answers, windowDates);
+  if (r.status !== 'insufficient' || allDates.length <= windowDates.length) return r;
+  return findPatterns(questions, answers, allDates);
 }
