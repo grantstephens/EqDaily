@@ -294,7 +294,7 @@ describe('findPatterns', () => {
     for (const q of qs) for (const day of d) answers.push(a(q, day, q.type === 'yesno' ? rnd() < 0.5 : Math.floor(rnd() * 11)));
     const t0 = Date.now();
     const r = findPatterns(qs, answers, d);
-    expect(Date.now() - t0).toBeLessThan(500);
+    expect(Date.now() - t0).toBeLessThan(1200); // ~300ms alone, ~560ms under a parallel suite; the unoptimised loop took 2000+
     if (r.status === 'found') expect(r.patterns.length).toBeLessThanOrEqual(3);
   });
 });

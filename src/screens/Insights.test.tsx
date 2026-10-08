@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import React from 'react';
 
+import { addDays } from '../domain/date';
 import type { NewQuestion } from '../domain/question';
 import { makeHarness } from '../testing/harness';
 import { InsightsScreen } from './Insights';
@@ -119,4 +120,48 @@ test('left open past midnight, the window moves on without a foreground event', 
   } finally {
     jest.useRealTimers();
   }
+});
+
+async function seededPatterns() {
+  const h = await makeHarness(); // "now" is 2026-10-05
+  const s = h.store;
+  const mood = await s.addQuestion(q('Mood', 'scale', { min: 0, max: 10 }));
+  const ex = await s.addQuestion(q('Exercise', 'yesno', {}));
+  for (let i = 0; i < 28; i++) {
+    const day = addDays('2026-10-05', -i);
+    const yes = i % 2 === 0;
+    await s.setAnswer(day, ex.id, yes);
+    await s.setAnswer(day, mood.id, (yes ? 8 : 5) + (((i * 7) % 5) - 2) * 0.2);
+  }
+  return h;
+}
+
+test('Patterns card states a finding in plain English, with the charts still below it', async () => {
+  const h = await seededPatterns();
+  await render(h.wrap(<InsightsScreen />));
+  const finding = await screen.findByTestId('pattern-0');
+  expect(finding).toHaveTextContent(/Exercise was Yes, Mood averages/);
+  expect(screen.getByTestId('patterns-note')).toHaveTextContent('Patterns are hints, not proof.');
+  expect(screen.getAllByText(/of 30 days answered/).length).toBe(2); // both existing cards still render
+});
+
+test('with only a few days of data the card asks the user to keep logging', async () => {
+  const h = await seeded();
+  await render(h.wrap(<InsightsScreen />));
+  expect(await screen.findByTestId('patterns-insufficient')).toHaveTextContent(/Keep logging/);
+});
+
+test('a short range still finds patterns by falling back to all data', async () => {
+  const h = await seededPatterns();
+  await render(h.wrap(<InsightsScreen />));
+  await screen.findByTestId('pattern-0');
+  await fireEvent.press(screen.getByTestId('range-7'));
+  expect(await screen.findByTestId('pattern-0')).toBeTruthy();
+});
+
+test('no questions at all shows the empty message and no Patterns card', async () => {
+  const h = await makeHarness();
+  await render(h.wrap(<InsightsScreen />));
+  await screen.findByText(/Nothing to show yet/);
+  expect(screen.queryByTestId('patterns-card')).toBeNull();
 });
