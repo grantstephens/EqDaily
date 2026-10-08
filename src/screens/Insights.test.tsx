@@ -203,16 +203,16 @@ async function seededStreak() {
 test('the strip shows the current and best streak, days logged this week, and what moved', async () => {
   const h = await seededStreak();
   await render(h.wrap(<InsightsScreen />));
-  expect(await screen.findByTestId('streak-current')).toHaveTextContent('5-day streak');
+  expect(await screen.findByTestId('streak-current')).toHaveTextContent(/5-day streak/);
   expect(screen.getByTestId('streak-best')).toHaveTextContent(/best/i);
-  expect(screen.getByTestId('week-logged')).toHaveTextContent('5 of 7 days logged');
-  expect(screen.getByTestId('week-logged')).toHaveTextContent('last week 3');
+  expect(screen.getByTestId('week-logged')).toHaveTextContent(/5 of 7 days logged/);
+  expect(screen.getByTestId('week-logged')).toHaveTextContent(/last week 3/);
 });
 
 test('a yes/no card says how many days in a row, only when it is 2 or more', async () => {
   const h = await seededStreak();
   await render(h.wrap(<InsightsScreen />));
-  expect(await screen.findByTestId('yes-streak')).toHaveTextContent('4 days in a row');
+  expect(await screen.findByTestId('yes-streak')).toHaveTextContent(/4 days in a row/);
 });
 
 test('the strip is not shown when there is nothing yet', async () => {
