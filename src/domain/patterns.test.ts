@@ -178,7 +178,7 @@ describe('findPatterns', () => {
       answers.push(a(mood, day, (yes ? 8 : 5) + jitter(i)));
     });
     // only "yes" days have an answer, so there is no "off" group at all
-    expect(findPatterns([mood, ex], answers, d).status).toBe('insufficient');
+    expect(findPatterns([mood, ex], answers, d).status).toBe('none');
   });
 
   test('fewer than 14 paired days is insufficient', () => {
@@ -192,7 +192,7 @@ describe('findPatterns', () => {
     const d = span(30);
     const answers: Answer[] = [];
     d.forEach((day, i) => answers.push(a(ex, day, i < 4), a(mood, day, i < 4 ? 9 : 4 + jitter(i))));
-    expect(findPatterns([mood, ex], answers, d).status).toBe('insufficient');
+    expect(findPatterns([mood, ex], answers, d).status).toBe('none');
   });
 
   test('no data and no questions are insufficient, never an error', () => {
@@ -205,11 +205,11 @@ describe('findPatterns', () => {
     const d = span(30);
     const answers: Answer[] = [];
     d.forEach((day, i) => answers.push(a(ex, day, true), a(mood, day, 5 + jitter(i))));
-    expect(findPatterns([mood, ex], answers, d).status).toBe('insufficient'); // no "off" days
+    expect(findPatterns([mood, ex], answers, d).status).toBe('none'); // no "off" days
     const constant: Answer[] = [];
     d.forEach((day, i) => constant.push(a(ex, day, i % 2 === 0), a(mood, day, 5)));
     const r = findPatterns([mood, ex], constant, d);
-    expect(r.status).toBe('insufficient'); // both groups constant: welch is null, nothing ran
+    expect(r.status).toBe('none'); // both groups constant: welch is null, nothing ran
   });
 
   test('comparable data with no real link reports "none"', () => {
@@ -224,7 +224,7 @@ describe('findPatterns', () => {
     const hiddenEx = { ...ex, hideFromInsights: true };
     const answers: Answer[] = [];
     d.forEach((day, i) => answers.push(a(hiddenEx, day, i % 2 === 0), a(mood, day, (i % 2 === 0 ? 8 : 5) + jitter(i))));
-    expect(findPatterns([mood, hiddenEx], answers, d).status).toBe('insufficient');
+    expect(findPatterns([mood, hiddenEx], answers, d).status).toBe('incomparable'); // only Mood is left
   });
 
   test('late bedtime followed by a lower mood next day is found via the time series', () => {
@@ -296,6 +296,30 @@ describe('findPatterns', () => {
     const r = findPatterns(qs, answers, d);
     expect(Date.now() - t0).toBeLessThan(1200); // ~300ms alone, ~560ms under a parallel suite; the unoptimised loop took 2000+
     if (r.status === 'found') expect(r.patterns.length).toBeLessThanOrEqual(3);
+  });
+});
+
+describe('findPatterns: states for data that can never be compared', () => {
+  const d = span(60);
+  test('only yes/no questions, however long you log, is "incomparable" (not "keep logging")', () => {
+    const ex2 = { ...ex, id: 8, label: 'Read' };
+    const answers = d.flatMap((day, i) => [a(ex, day, i % 3 === 0), a(ex2, day, i % 2 === 0)]);
+    expect(findPatterns([ex, ex2], answers, d).status).toBe('incomparable');
+  });
+  test('a single slider on its own is "incomparable"', () => {
+    expect(findPatterns([mood], d.map((day, i) => a(mood, day, i % 10)), d).status).toBe('incomparable');
+  });
+  test('a few days of data is still "insufficient", whatever the questions', () => {
+    const few = span(5);
+    expect(findPatterns([ex], few.map((day) => a(ex, day, true)), few).status).toBe('insufficient');
+  });
+  test('a number that never varies but has decimals produces no finding', () => {
+    const kg: Question = { ...base, id: 20, label: 'Weight', type: 'number', config: { decimals: 1, unit: 'kg' } };
+    for (const v of [72.4, 0.1, 98.6, 7.1]) {
+      const r = mulberry32(3);
+      const answers = d.flatMap((day) => [a(ex, day, r() < 0.5), a(kg, day, v)]);
+      expect(findPatterns([kg, ex], answers, d).status).not.toBe('found');
+    }
   });
 });
 

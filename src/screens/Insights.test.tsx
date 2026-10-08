@@ -165,3 +165,17 @@ test('no questions at all shows the empty message and no Patterns card', async (
   await screen.findByText(/Nothing to show yet/);
   expect(screen.queryByTestId('patterns-card')).toBeNull();
 });
+
+test('only yes/no questions: explains what Patterns needs instead of "keep logging"', async () => {
+  const h = await makeHarness();
+  const a1 = await h.store.addQuestion(q('Exercise', 'yesno', {}));
+  const a2 = await h.store.addQuestion(q('Read', 'yesno', {}));
+  for (let i = 0; i < 20; i++) {
+    const day = addDays('2026-10-05', -i);
+    await h.store.setAnswer(day, a1.id, i % 2 === 0);
+    await h.store.setAnswer(day, a2.id, i % 3 === 0);
+  }
+  await render(h.wrap(<InsightsScreen />));
+  expect(await screen.findByTestId('patterns-incomparable')).toHaveTextContent(/yes\/no.*slider/i);
+  expect(screen.queryByTestId('patterns-insufficient')).toBeNull();
+});

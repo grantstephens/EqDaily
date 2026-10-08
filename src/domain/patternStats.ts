@@ -4,6 +4,8 @@
 export const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
 
 const variance = (xs: number[]): number => {
+  // identical decimals (7.1, 7.1, ...) leave float noise in the mean; call them exactly constant
+  if (xs.every((x) => x === xs[0])) return 0;
   const m = mean(xs);
   return xs.reduce((a, x) => a + (x - m) ** 2, 0) / (xs.length - 1);
 };

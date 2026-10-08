@@ -141,7 +141,11 @@ export interface Pattern {
 }
 
 export type PatternsResult =
+  /** Too few days of answers to compare anything yet. */
   | { status: 'insufficient' }
+  /** Enough days, but there is nothing to compare: no yes/no-or-choice question, or no slider/number/time one. */
+  | { status: 'incomparable' }
+  /** Things were compared and nothing stood out. */
   | { status: 'none' }
   | { status: 'found'; patterns: Pattern[] };
 
@@ -188,7 +192,14 @@ export function findPatterns(questions: Question[], answers: Answer[], dates: Jo
       }
     }
   }
-  if (run === 0) return { status: 'insufficient' };
+  if (run === 0) {
+    const answered = new Set<JournalDate>();
+    for (const s of binary) for (const day of s.days.keys()) answered.add(day);
+    for (const o of numeric) for (const day of o.values.keys()) answered.add(day);
+    if (answered.size < MIN_PAIRED) return { status: 'insufficient' };
+    const pairable = binary.some((s) => numeric.some((o) => o.questionId !== s.questionId));
+    return { status: pairable ? 'none' : 'incomparable' };
+  }
 
   const alpha = ALPHA / run;
   const strong = candidates

@@ -20,6 +20,11 @@ export function PatternsCard({ result }: { result: PatternsResult }) {
         {result.status === 'none' && (
           <Text testID="patterns-none">No clear patterns yet — they show up when something clearly goes with a better or worse day.</Text>
         )}
+        {result.status === 'incomparable' && (
+          <Text testID="patterns-incomparable">
+            Patterns compares a yes/no or choice question with a slider, number or time question. Add one of each to see how they move together.
+          </Text>
+        )}
         {result.status === 'insufficient' && (
           <Text testID="patterns-insufficient">Keep logging — Patterns needs about two weeks of answers.</Text>
         )}

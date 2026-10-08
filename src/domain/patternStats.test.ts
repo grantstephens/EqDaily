@@ -44,6 +44,12 @@ describe('welch', () => {
     const w = welch([3, 3, 3, 3], [1, 2, 3, 4, 5, 6])!;
     expect(Number.isFinite(w.t) && Number.isFinite(w.p) && Number.isFinite(w.d)).toBe(true);
   });
+  test('identical decimals are constant: no float-noise "effect"', () => {
+    expect(welch(Array(6).fill(7.1), Array(24).fill(7.1))).toBeNull();
+    expect(welch(Array(6).fill(72.4), Array(24).fill(72.4))).toBeNull();
+    const w = welch(Array(5).fill(0.1), [0.1, 0.2, 0.3, 0.4, 0.5])!; // one constant group, one varying: still fine
+    expect(Number.isFinite(w.d)).toBe(true);
+  });
   test('fewer than two values in a group cannot be compared', () => {
     expect(welch([1], [1, 2, 3])).toBeNull();
     expect(welch([], [1, 2, 3])).toBeNull();
