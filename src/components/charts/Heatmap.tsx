@@ -1,8 +1,8 @@
-import React, { useRef } from 'react';
+import React, { memo, useMemo, useRef } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 
-import { calendarGrid, cellLabel, LEVELS, levelAlpha, scaleLevel, withAlpha } from './heatmapGeometry';
+import { calendarGrid, cellLabel, heatmapDates, heatmapSummary, LEVELS, levelAlpha, scaleLevel, withAlpha } from './heatmapGeometry';
 
 interface Props {
   dates: string[];
@@ -23,20 +23,25 @@ const ROW_LABELS = ['M', '', 'W', '', 'F', '', ''];
  * never mistaken for a "no". Slider values use a single-hue ramp. Scrolls
  * sideways when the range is long, starting at the most recent weeks.
  */
-export function Heatmap({ dates, values, mode, min = 0, max = 1 }: Props) {
+export const Heatmap = memo(function Heatmap({ dates: allDates, values, mode, min = 0, max = 1 }: Props) {
   const theme = useTheme();
   const scroller = useRef<ScrollView>(null);
-  const { columns, months } = calendarGrid(dates);
+  const dates = useMemo(() => heatmapDates(allDates), [allDates]);
+  const { columns, months } = useMemo(() => calendarGrid(dates), [dates]);
 
   const cellStyle = (value: boolean | number | undefined) => {
     const base = { width: SIZE, height: SIZE, borderRadius: 3 };
-    if (value === undefined) return { ...base, backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.outlineVariant };
-    if (typeof value === 'boolean') return { ...base, backgroundColor: value ? theme.colors.primary : theme.colors.surfaceVariant };
+    // skipped recedes (a faint ring); an answered "no" is a solid, clearly visible neutral
+    if (value === undefined) return { ...base, backgroundColor: 'transparent', borderWidth: 1.5, borderColor: theme.colors.outlineVariant };
+    if (typeof value === 'boolean') return { ...base, backgroundColor: value ? theme.colors.primary : theme.colors.outline };
     return { ...base, backgroundColor: withAlpha(theme.colors.primary, levelAlpha(scaleLevel(value, min, max))) };
   };
 
   return (
-    <View testID="heatmap" style={{ gap: 6 }}>
+    <View
+      testID="heatmap" style={{ gap: 6 }} accessible
+      accessibilityLabel={heatmapSummary(dates, values, mode)}
+    >
       <View style={{ flexDirection: 'row', gap: 4 }}>
         <View style={{ gap: GAP, paddingTop: 16 }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           {ROW_LABELS.map((l, i) => (
@@ -50,7 +55,7 @@ export function Heatmap({ dates, values, mode, min = 0, max = 1 }: Props) {
           onContentSizeChange={() => scroller.current?.scrollToEnd({ animated: false })}
         >
           <View>
-            <View style={{ height: 16, width: columns.length * STEP }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+            <View testID="heatmap-months" style={{ height: 16, width: columns.length * STEP + 24 }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
               {months.map((m) => (
                 <Text key={m.column} variant="labelSmall" style={{ position: 'absolute', left: m.column * STEP }}>{m.label}</Text>
               ))}
@@ -63,7 +68,7 @@ export function Heatmap({ dates, values, mode, min = 0, max = 1 }: Props) {
                       <View key={`pad-${ri}`} style={{ width: SIZE, height: SIZE }} />
                     ) : (
                       <View
-                        key={date} testID={`heat-${date}`} accessible
+                        key={date} testID={`heat-${date}`} accessible={false}
                         accessibilityLabel={cellLabel(date, values.get(date))}
                         style={cellStyle(values.get(date))}
                       />
@@ -78,7 +83,7 @@ export function Heatmap({ dates, values, mode, min = 0, max = 1 }: Props) {
       <Legend mode={mode} />
     </View>
   );
-}
+});
 
 function Legend({ mode }: { mode: 'yesno' | 'scale' }) {
   const theme = useTheme();
@@ -88,15 +93,15 @@ function Legend({ mode }: { mode: 'yesno' | 'scale' }) {
       {mode === 'yesno' ? (
         <>
           {swatch({ backgroundColor: theme.colors.primary }, 'y')}<Text variant="labelSmall">yes</Text>
-          {swatch({ backgroundColor: theme.colors.surfaceVariant }, 'n')}<Text variant="labelSmall">no</Text>
-          {swatch({ borderWidth: 1, borderColor: theme.colors.outlineVariant }, 's')}<Text variant="labelSmall">skipped</Text>
+          {swatch({ backgroundColor: theme.colors.outline }, 'n')}<Text variant="labelSmall">no</Text>
+          {swatch({ borderWidth: 1.5, borderColor: theme.colors.outlineVariant }, 's')}<Text variant="labelSmall">skipped</Text>
         </>
       ) : (
         <>
           <Text variant="labelSmall">low</Text>
           {Array.from({ length: LEVELS }, (_, i) => swatch({ backgroundColor: withAlpha(theme.colors.primary, levelAlpha(i + 1)) }, `l${i}`))}
           <Text variant="labelSmall">high</Text>
-          {swatch({ borderWidth: 1, borderColor: theme.colors.outlineVariant }, 's')}<Text variant="labelSmall">skipped</Text>
+          {swatch({ borderWidth: 1.5, borderColor: theme.colors.outlineVariant }, 's')}<Text variant="labelSmall">skipped</Text>
         </>
       )}
     </View>

@@ -3,6 +3,10 @@ import { displayDate, monthOf, toUtcTime } from '../../domain/date';
 
 /** Ranges shorter than this do not get a heatmap (too few cells to read). */
 export const HEATMAP_MIN_DAYS = 28;
+/** The calendar shows at most this many of the most recent days (a year); older history stays in the charts. */
+export const HEATMAP_MAX_DAYS = 366;
+/** Month labels closer together than this many columns would overlap (a label is ~24px, a column 17px). */
+const MIN_LABEL_GAP = 3;
 /** Number of intensity steps in the slider ramp. */
 export const LEVELS = 5;
 
@@ -37,7 +41,11 @@ export function calendarGrid(dates: string[]): { columns: (string | null)[][]; m
   columns.forEach((c, i) => {
     const first = c.find((d) => d !== null)!;
     const m = monthOf(first);
-    if (m !== lastMonth) months.push({ column: i, label: MONTHS[m - 1]! });
+    if (m !== lastMonth) {
+      // a partial first month sitting right before the next one gives way to it
+      if (months.length > 0 && i - months[months.length - 1]!.column < MIN_LABEL_GAP) months.pop();
+      months.push({ column: i, label: MONTHS[m - 1]! });
+    }
     lastMonth = m;
   });
   return { columns, months };
@@ -72,4 +80,23 @@ export function cellLabel(date: string, value: boolean | number | undefined): st
       : typeof value === 'boolean' ? (value ? 'yes' : 'no')
         : String(Number(value.toFixed(1)));
   return `${displayDate(date)}: ${what}`;
+}
+
+/** heatmapDates keeps the most recent HEATMAP_MAX_DAYS days, so "All" on a long history stays light. */
+export function heatmapDates(dates: string[]): string[] {
+  return dates.length > HEATMAP_MAX_DAYS ? dates.slice(-HEATMAP_MAX_DAYS) : dates;
+}
+
+/** heatmapSummary is the one label a screen reader gets for the whole calendar. */
+export function heatmapSummary(dates: string[], values: Map<string, boolean | number>, mode: 'yesno' | 'scale'): string {
+  const answered = dates.filter((d) => values.has(d));
+  const skipped = dates.length - answered.length;
+  const head = `Calendar of ${dates.length} days`;
+  if (mode === 'yesno') {
+    const yes = answered.filter((d) => values.get(d) === true).length;
+    return `${head}: ${yes} yes, ${answered.length - yes} no, ${skipped} skipped`;
+  }
+  if (answered.length === 0) return `${head}: 0 answered, ${skipped} skipped`;
+  const avg = answered.reduce((a, d) => a + (values.get(d) as number), 0) / answered.length;
+  return `${head}: ${answered.length} answered, average ${Number(avg.toFixed(1))}, ${skipped} skipped`;
 }

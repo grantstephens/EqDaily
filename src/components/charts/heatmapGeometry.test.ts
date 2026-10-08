@@ -1,5 +1,7 @@
 // src/components/charts/heatmapGeometry.test.ts
-import { calendarGrid, cellLabel, HEATMAP_MIN_DAYS, LEVELS, levelAlpha, scaleLevel, withAlpha } from './heatmapGeometry';
+import {
+  calendarGrid, cellLabel, HEATMAP_MAX_DAYS, HEATMAP_MIN_DAYS, heatmapDates, heatmapSummary, LEVELS, levelAlpha, scaleLevel, withAlpha,
+} from './heatmapGeometry';
 
 const range = (from: string, n: number): string[] =>
   Array.from({ length: n }, (_, i) => {
@@ -42,12 +44,25 @@ describe('calendarGrid', () => {
     expect(ny.columns[0]![4]).toBe('2027-01-01'); // Friday
   });
   test('month labels sit on the first column of each month', () => {
-    const { months } = calendarGrid(range('2026-09-28', 42)); // Mon 28 Sep .. Sun 8 Nov
+    const { months } = calendarGrid(range('2026-10-05', 35)); // Mon 5 Oct .. Sun 8 Nov
     expect(months).toEqual([
-      { column: 0, label: 'Sep' },
+      { column: 0, label: 'Oct' },
+      { column: 4, label: 'Nov' },
+    ]);
+  });
+  test('a partial first month right next to the next one gives way, so labels never collide', () => {
+    // range starts Mon 28 Sep: Sep would sit one column before Oct (17px apart, labels ~24px wide)
+    const { months } = calendarGrid(range('2026-09-28', 42));
+    expect(months).toEqual([
       { column: 1, label: 'Oct' },
       { column: 5, label: 'Nov' },
     ]);
+  });
+  test('labels are always at least 3 columns apart', () => {
+    for (let start = 0; start < 60; start++) {
+      const { months } = calendarGrid(range(new Date(Date.UTC(2026, 0, 1 + start)).toISOString().slice(0, 10), 90));
+      for (let i = 1; i < months.length; i++) expect(months[i]!.column - months[i - 1]!.column).toBeGreaterThanOrEqual(3);
+    }
   });
 });
 
@@ -89,6 +104,35 @@ describe('cellLabel', () => {
     expect(cellLabel('2026-10-07', 7.5)).toBe('Wed 7 Oct 2026: 7.5');
     expect(cellLabel('2026-10-07', 7)).toBe('Wed 7 Oct 2026: 7');
     expect(cellLabel('2026-10-07', 7.26)).toBe('Wed 7 Oct 2026: 7.3');
+  });
+});
+
+describe('heatmapDates', () => {
+  test('short and year-long histories are untouched', () => {
+    expect(heatmapDates(range('2026-01-01', 90))).toEqual(range('2026-01-01', 90));
+    expect(heatmapDates(range('2025-10-01', HEATMAP_MAX_DAYS))).toHaveLength(HEATMAP_MAX_DAYS);
+  });
+  test('a longer history keeps only the most recent year of days', () => {
+    const long = range('2022-01-01', 1500);
+    const kept = heatmapDates(long);
+    expect(kept).toHaveLength(HEATMAP_MAX_DAYS);
+    expect(kept.at(-1)).toBe(long.at(-1));
+  });
+});
+
+describe('heatmapSummary', () => {
+  const d = range('2026-10-01', 10);
+  test('yes/no: counts yes, no and skipped', () => {
+    const v = new Map<string, boolean | number>([[d[0]!, true], [d[1]!, true], [d[2]!, false]]);
+    expect(heatmapSummary(d, v, 'yesno')).toBe('Calendar of 10 days: 2 yes, 1 no, 7 skipped');
+  });
+  test('slider: answered days, average and skipped', () => {
+    const v = new Map<string, boolean | number>([[d[0]!, 4], [d[1]!, 7]]);
+    expect(heatmapSummary(d, v, 'scale')).toBe('Calendar of 10 days: 2 answered, average 5.5, 8 skipped');
+  });
+  test('answers outside the dates are ignored, and nothing answered says so without NaN', () => {
+    expect(heatmapSummary(d, new Map([['2025-01-01', true]]), 'yesno')).toBe('Calendar of 10 days: 0 yes, 0 no, 10 skipped');
+    expect(heatmapSummary(d, new Map(), 'scale')).toBe('Calendar of 10 days: 0 answered, 10 skipped');
   });
 });
 
