@@ -14,6 +14,9 @@ export function PatternsCard({ result }: { result: PatternsResult }) {
             {result.patterns.map((p, i) => (
               <Text key={i} testID={`pattern-${i}`}>{describePattern(p)}</Text>
             ))}
+            {result.fromAllData && (
+              <Text testID="patterns-all-data" variant="bodySmall">This range is too short to compare, so this uses all your data.</Text>
+            )}
             <Text testID="patterns-note" variant="bodySmall">Patterns are hints, not proof.</Text>
           </View>
         )}

@@ -155,8 +155,9 @@ test('a short range still finds patterns by falling back to all data', async () 
   const h = await seededPatterns();
   await render(h.wrap(<InsightsScreen />));
   await screen.findByTestId('pattern-0');
+  expect(screen.queryByTestId('patterns-all-data')).toBeNull();
   await fireEvent.press(screen.getByTestId('range-7'));
-  expect(await screen.findByTestId('pattern-0')).toBeTruthy();
+  expect(await screen.findByTestId('patterns-all-data')).toHaveTextContent(/all your data/i);
 });
 
 test('no questions at all shows the empty message and no Patterns card', async () => {

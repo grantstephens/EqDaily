@@ -330,7 +330,16 @@ describe('findPatternsWithFallback', () => {
     all.forEach((day, i) => answers.push(a(ex, day, i % 2 === 0), a(mood, day, (i % 2 === 0 ? 8 : 5) + jitter(i))));
     const shortWindow = all.slice(-7);
     expect(findPatterns([mood, ex], answers, shortWindow).status).toBe('insufficient');
-    expect(findPatternsWithFallback([mood, ex], answers, shortWindow, all).status).toBe('found');
+    const r = findPatternsWithFallback([mood, ex], answers, shortWindow, all);
+    expect(r.status).toBe('found');
+    expect(r.status === 'found' && r.fromAllData).toBe(true);
+  });
+  test('a finding from the chosen window itself is not flagged as from all data', () => {
+    const all = span(40);
+    const answers: Answer[] = [];
+    all.forEach((day, i) => answers.push(a(ex, day, i % 2 === 0), a(mood, day, (i % 2 === 0 ? 8 : 5) + jitter(i))));
+    const r = findPatternsWithFallback([mood, ex], answers, all, all);
+    expect(r.status === 'found' && r.fromAllData).toBeFalsy();
   });
   test('stays insufficient when even all data is too little', () => {
     const all = span(6);

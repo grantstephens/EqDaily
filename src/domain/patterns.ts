@@ -147,7 +147,7 @@ export type PatternsResult =
   | { status: 'incomparable' }
   /** Things were compared and nothing stood out. */
   | { status: 'none' }
-  | { status: 'found'; patterns: Pattern[] };
+  | { status: 'found'; patterns: Pattern[]; /** The chosen range was too short, so all your data was used. */ fromAllData?: boolean };
 
 interface Candidate { pattern: Pattern; p: number }
 
@@ -228,7 +228,8 @@ export function findPatternsWithFallback(
 ): PatternsResult {
   const r = findPatterns(questions, answers, windowDates);
   if (r.status !== 'insufficient' || allDates.length <= windowDates.length) return r;
-  return findPatterns(questions, answers, allDates);
+  const all = findPatterns(questions, answers, allDates);
+  return all.status === 'found' ? { ...all, fromAllData: true } : all;
 }
 
 function formatValue(type: 'scale' | 'number' | 'time', v: number, unit?: string): string {
