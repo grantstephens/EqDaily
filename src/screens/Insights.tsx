@@ -46,7 +46,7 @@ export function InsightsScreen() {
         const patterns = findPatternsWithFallback(questions, answers, dates, allDates);
         const loggedDays = answers.map((x) => x.date);
         const streak = { current: currentStreak(loggedDays, end), best: longestStreak(loggedDays) };
-        const week = weeklySummary(questions, answers, end);
+        const week = weeklySummary(questions, answers, end, first);
         const yes = new Map<number, number>();
         for (const question of questions) {
           if (question.type !== 'yesno') continue;

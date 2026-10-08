@@ -206,7 +206,7 @@ test('the strip shows the current and best streak, days logged this week, and wh
   expect(await screen.findByTestId('streak-current')).toHaveTextContent(/5-day streak/);
   expect(screen.getByTestId('streak-best')).toHaveTextContent(/best/i);
   expect(screen.getByTestId('week-logged')).toHaveTextContent(/5 of 7 days logged/);
-  expect(screen.getByTestId('week-logged')).toHaveTextContent(/last week 3/);
+  expect(screen.getByTestId('week-logged')).toHaveTextContent(/last week 3 of 3/);
 });
 
 test('a yes/no card says how many days in a row, only when it is 2 or more', async () => {
@@ -228,4 +228,22 @@ test('with no streak right now, the strip says so rather than showing 0', async 
   await h.store.setAnswer('2026-09-20', mood.id, 5);
   await render(h.wrap(<InsightsScreen />));
   expect(await screen.findByTestId('streak-current')).toHaveTextContent(/no streak/i);
+});
+
+test('a brand-new user is not compared with a week before they started', async () => {
+  const h = await makeHarness(); // now = 2026-10-05
+  const mood = await h.store.addQuestion(q('Mood', 'scale', { min: 0, max: 10 }));
+  await h.store.setAnswer('2026-10-05', mood.id, 7);
+  await render(h.wrap(<InsightsScreen />));
+  expect(await screen.findByTestId('week-logged')).toHaveTextContent(/1 of 1 days? logged/);
+  expect(screen.getByTestId('week-logged')).not.toHaveTextContent(/last week/);
+});
+
+test('after more than two weeks away the strip does not say "0 of 7 (last week 0)"', async () => {
+  const h = await makeHarness();
+  const mood = await h.store.addQuestion(q('Mood', 'scale', { min: 0, max: 10 }));
+  await h.store.setAnswer('2026-08-01', mood.id, 5);
+  await render(h.wrap(<InsightsScreen />));
+  expect(await screen.findByTestId('week-logged')).toHaveTextContent(/Nothing logged in the last 14 days/);
+  expect(screen.getByTestId('week-logged')).not.toHaveTextContent(/0 of 7/);
 });

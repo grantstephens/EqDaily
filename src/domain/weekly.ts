@@ -11,6 +11,8 @@ export const MAX_MOVES = 3;
 export interface Move { questionId: number; label: string; text: string; magnitude: number }
 export interface WeeklySummary {
   logged: { current: number; previous: number };
+  /** How many days each window could have had answers, given when the user started (at most 7). */
+  possible: { current: number; previous: number };
   moves: Move[];
 }
 
@@ -30,7 +32,9 @@ const duration = (minutes: number): string => {
  * most. Yes/no, choice, checkbox and text questions, and hidden questions, are
  * never moves.
  */
-export function weeklySummary(questions: Question[], answers: Answer[], today: JournalDate): WeeklySummary {
+export function weeklySummary(
+  questions: Question[], answers: Answer[], today: JournalDate, first: JournalDate | null = null,
+): WeeklySummary {
   const curDays = new Set(Array.from({ length: 7 }, (_, i) => addDays(today, -i)));
   const prevDays = new Set(Array.from({ length: 7 }, (_, i) => addDays(today, -7 - i)));
 
@@ -82,5 +86,11 @@ export function weeklySummary(questions: Question[], answers: Answer[], today: J
   }
   moves.sort((x, y) => y.magnitude - x.magnitude);
 
-  return { logged: { current: loggedCur.size, previous: loggedPrev.size }, moves: moves.slice(0, MAX_MOVES) };
+  // Days before the user's first answer cannot have been logged, so they do not count as missed.
+  const possible = (days: Set<JournalDate>) => (first === null ? 7 : [...days].filter((d) => d >= first).length);
+  return {
+    logged: { current: loggedCur.size, previous: loggedPrev.size },
+    possible: { current: possible(curDays), previous: possible(prevDays) },
+    moves: moves.slice(0, MAX_MOVES),
+  };
 }

@@ -4,6 +4,14 @@ import { Card, Text } from 'react-native-paper';
 
 import type { WeeklySummary } from '../../domain/weekly';
 
+const days = (n: number) => (n === 1 ? 'day' : 'days');
+
+function weekLine({ logged, possible }: WeeklySummary): string {
+  if (logged.current === 0 && logged.previous === 0) return 'Nothing logged in the last 14 days.';
+  const now = `This week: ${logged.current} of ${possible.current} ${days(possible.current)} logged`;
+  return possible.previous > 0 ? `${now} (last week ${logged.previous} of ${possible.previous})` : now;
+}
+
 interface Props { streak: { current: number; best: number }; week: WeeklySummary }
 
 export function StatsStrip({ streak, week }: Props) {
@@ -16,7 +24,7 @@ export function StatsStrip({ streak, week }: Props) {
           </Text>
           {streak.best > 0 && <Text testID="streak-best" variant="bodySmall">{`Best: ${streak.best} ${streak.best === 1 ? 'day' : 'days'}`}</Text>}
         </View>
-        <Text testID="week-logged">{`This week: ${week.logged.current} of 7 days logged (last week ${week.logged.previous})`}</Text>
+        <Text testID="week-logged">{weekLine(week)}</Text>
         {week.moves.length > 0 && (
           <View>
             <Text variant="labelLarge">Compared with last week</Text>

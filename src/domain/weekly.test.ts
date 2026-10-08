@@ -23,7 +23,24 @@ describe('logged days', () => {
     expect(weeklySummary([mood], [a(mood, addDays(T, -20), 5), a(mood, addDays(T, 1), 5)], T).logged).toEqual({ current: 0, previous: 0 });
   });
   test('no data at all is zeros and no moves, never NaN', () => {
-    expect(weeklySummary([mood, bed], [], T)).toEqual({ logged: { current: 0, previous: 0 }, moves: [] });
+    expect(weeklySummary([mood, bed], [], T)).toMatchObject({ logged: { current: 0, previous: 0 }, moves: [] });
+  });
+});
+
+describe('possible days (windows clamped to when the user started)', () => {
+  test('a user who started today has 1 possible day and no previous week', () => {
+    expect(weeklySummary([mood], [a(mood, T, 5)], T, T).possible).toEqual({ current: 1, previous: 0 });
+  });
+  test('started 3 days ago: 4 possible days now, still no previous week', () => {
+    expect(weeklySummary([mood], [a(mood, cur(3), 5)], T, cur(3)).possible).toEqual({ current: 4, previous: 0 });
+  });
+  test('started 9 days ago: full current week, partial previous week', () => {
+    expect(weeklySummary([mood], [a(mood, cur(9), 5)], T, cur(9)).possible).toEqual({ current: 7, previous: 3 });
+  });
+  test('started long ago, or unknown: both windows are a full 7 days', () => {
+    expect(weeklySummary([mood], [], T, '2026-01-01').possible).toEqual({ current: 7, previous: 7 });
+    expect(weeklySummary([mood], [], T, null).possible).toEqual({ current: 7, previous: 7 });
+    expect(weeklySummary([mood], [], T).possible).toEqual({ current: 7, previous: 7 });
   });
 });
 
