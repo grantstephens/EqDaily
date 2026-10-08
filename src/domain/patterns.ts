@@ -159,6 +159,8 @@ export function findPatterns(questions: Question[], answers: Answer[], dates: Jo
   const { binary, numeric } = buildSignals(questions, answers, dates);
   const candidates: Candidate[] = [];
   let run = 0;
+  // addDays parses and formats a string; do it once per day, not once per comparison.
+  const nextDay = new Map(dates.map((day) => [day, addDays(day, 1)] as const));
 
   for (const s of binary) {
     for (const o of numeric) {
@@ -167,7 +169,7 @@ export function findPatterns(questions: Question[], answers: Answer[], dates: Jo
         const on: number[] = [];
         const off: number[] = [];
         for (const [date, flag] of s.days) {
-          const v = o.values.get(lag === 0 ? date : addDays(date, 1));
+          const v = o.values.get(lag === 0 ? date : nextDay.get(date)!);
           if (v === undefined) continue;
           (flag ? on : off).push(v);
         }
