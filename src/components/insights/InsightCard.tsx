@@ -7,11 +7,13 @@ import type { Summary } from '../../domain/stats';
 import { minutesToTime } from '../../domain/time';
 import { BarList } from '../charts/BarList';
 import { DotStrip } from '../charts/DotStrip';
+import { Heatmap } from '../charts/Heatmap';
+import { HEATMAP_MIN_DAYS } from '../charts/heatmapGeometry';
 import { LineChart } from '../charts/LineChart';
 
 interface Props { question: Question; summary: Summary; dates: string[]; yesStreak?: number }
 
-function Body({ summary, dates, yesStreak }: { summary: Summary; dates: string[]; yesStreak?: number }) {
+function Body({ summary, dates, yesStreak, isScale }: { summary: Summary; dates: string[]; yesStreak?: number; isScale?: boolean }) {
   switch (summary.kind) {
     case 'numeric': {
       const { average, change, unit, points, axisMin, axisMax } = summary;
@@ -25,6 +27,9 @@ function Body({ summary, dates, yesStreak }: { summary: Summary; dates: string[]
             )}
           </View>
           <LineChart points={points} dates={dates} axisMin={axisMin} axisMax={axisMax} />
+          {isScale && dates.length >= HEATMAP_MIN_DAYS && (
+            <Heatmap dates={dates} mode="scale" min={axisMin} max={axisMax} values={new Map(points.map((p) => [p.date, p.value]))} />
+          )}
         </View>
       );
     }
@@ -45,6 +50,9 @@ function Body({ summary, dates, yesStreak }: { summary: Summary; dates: string[]
           <Text variant="headlineMedium">{`${Math.round(summary.percentYes!)}% yes`}</Text>
           {yesStreak !== undefined && yesStreak >= 2 && <Text testID="yes-streak">{`${yesStreak} days in a row`}</Text>}
           <DotStrip days={summary.days} />
+          {dates.length >= HEATMAP_MIN_DAYS && (
+            <Heatmap dates={dates} mode="yesno" values={new Map(summary.days.filter((d) => d.value !== null).map((d) => [d.date, d.value as boolean]))} />
+          )}
         </View>
       );
     case 'options':
@@ -77,7 +85,7 @@ export function InsightCard({ question, summary, dates, yesStreak }: Props) {
       <Card.Content style={{ gap: 8 }}>
         <Text variant="titleMedium">{question.label}</Text>
         <Text variant="labelSmall">{`${answered} of ${total} days answered`}</Text>
-        {answered === 0 ? <Text>No answers in this period.</Text> : <Body summary={summary} dates={dates} yesStreak={yesStreak} />}
+        {answered === 0 ? <Text>No answers in this period.</Text> : <Body summary={summary} dates={dates} yesStreak={yesStreak} isScale={question.type === 'scale'} />}
       </Card.Content>
     </Card>
   );

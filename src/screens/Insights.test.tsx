@@ -247,3 +247,35 @@ test('after more than two weeks away the strip does not say "0 of 7 (last week 0
   expect(await screen.findByTestId('week-logged')).toHaveTextContent(/Nothing logged in the last 14 days/);
   expect(screen.getByTestId('week-logged')).not.toHaveTextContent(/0 of 7/);
 });
+
+test('yes/no and slider cards get a heatmap on a 30-day range, with the existing charts kept', async () => {
+  const h = await seededPatterns(); // 28 days of Mood + Exercise, now = 2026-10-05
+  await render(h.wrap(<InsightsScreen />));
+  await screen.findAllByTestId('heatmap');
+  expect(screen.getAllByTestId('heatmap')).toHaveLength(2); // Mood (slider) and Exercise (yes/no)
+  expect(screen.getAllByTestId('heat-2026-10-05')[0]!.props.accessibilityLabel).toMatch(/Mon 5 Oct 2026: /); // one per heatmap
+  expect(screen.getAllByText(/of 30 days answered/)).toHaveLength(2); // cards unchanged
+});
+
+test('a 7-day range has no heatmap', async () => {
+  const h = await seededPatterns();
+  await render(h.wrap(<InsightsScreen />));
+  await screen.findAllByTestId('heatmap');
+  await fireEvent.press(screen.getByTestId('range-7'));
+  await screen.findAllByText(/of 7 days answered/);
+  expect(screen.queryByTestId('heatmap')).toBeNull();
+});
+
+test('number, time, checkbox and text cards never get a heatmap', async () => {
+  const h = await makeHarness();
+  const water = await h.store.addQuestion(q('Water', 'number', { decimals: 0 }));
+  const bed = await h.store.addQuestion(q('Bedtime', 'time', {}));
+  for (let i = 0; i < 30; i++) {
+    const day = addDays('2026-10-05', -i);
+    await h.store.setAnswer(day, water.id, 4 + (i % 3));
+    await h.store.setAnswer(day, bed.id, '23:00');
+  }
+  await render(h.wrap(<InsightsScreen />));
+  await screen.findByText('Water');
+  expect(screen.queryByTestId('heatmap')).toBeNull();
+});
