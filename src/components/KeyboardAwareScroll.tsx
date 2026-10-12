@@ -24,7 +24,8 @@ const MARGIN = 24;
  * stays correct if the system moved the window anyway), adds that much room at
  * the bottom so everything can scroll clear, and scrolls the focused field into
  * the free space, again whenever the field grows as you type. On web there are
- * no keyboard events, so it is a plain ScrollView.
+ * no keyboard events, so it is a plain ScrollView. Dragging the list closes the
+ * keyboard, which is how you get back to the tab bar.
  */
 export function KeyboardAwareScroll({
   children, onLayout, onScroll, onContentSizeChange, ...rest
@@ -84,6 +85,7 @@ export function KeyboardAwareScroll({
     <ScrollView
       ref={ref}
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
       scrollEventThrottle={16}
       {...rest}
       onLayout={(e: LayoutChangeEvent) => {

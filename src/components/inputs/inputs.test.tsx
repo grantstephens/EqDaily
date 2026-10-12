@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react-n
 import React from 'react';
 const mockPickTime = jest.fn();
 jest.mock('../../platform/timePicker', () => ({ pickTime: (...a: unknown[]) => mockPickTime(...a) }));
-import { StyleSheet } from 'react-native';
+import { Keyboard, StyleSheet } from 'react-native';
 
 import type { Question } from '../../domain/question';
 import { AnswerInput } from './AnswerInput';
@@ -203,6 +203,26 @@ describe('text', () => {
     const style = StyleSheet.flatten(screen.getByTestId('text-input').props.style);
     expect(style.maxHeight).toBe(240);
     expect(style.height).toBeUndefined(); // no fixed height: the input sizes itself to its content
+  });
+  test('no Done button unless asked for', async () => {
+    await show(textQ(true), null);
+    await fireEvent(screen.getByTestId('text-input'), 'focus');
+    expect(screen.queryByTestId('text-done')).toBeNull();
+  });
+  test('a last-question field shows Done only while focused, and Done dismisses the keyboard', async () => {
+    const dismiss = jest.spyOn(Keyboard, 'dismiss').mockImplementation(() => {});
+    await render(<AnswerInput question={textQ(true)} value={null} onChange={jest.fn()} optionUsage={[]} isLast />);
+    expect(screen.queryByTestId('text-done')).toBeNull();
+    await fireEvent(screen.getByTestId('text-input'), 'focus');
+    await press('text-done');
+    expect(dismiss).toHaveBeenCalled();
+    dismiss.mockRestore();
+  });
+  test('Done goes away again on blur', async () => {
+    await render(<AnswerInput question={textQ(true)} value={null} onChange={jest.fn()} optionUsage={[]} isLast />);
+    await fireEvent(screen.getByTestId('text-input'), 'focus');
+    await fireEvent(screen.getByTestId('text-input'), 'blur');
+    expect(screen.queryByTestId('text-done')).toBeNull();
   });
   test('blur on an untouched empty field emits nothing', async () => {
     const onChange = await show(textQ(), null);

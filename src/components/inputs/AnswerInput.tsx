@@ -15,10 +15,12 @@ interface Props {
   onChange: (value: AnswerValue | null) => void;
   /** Learned option usage, used only by checkbox and choice questions. */
   optionUsage: { option: string; count: number }[];
+  /** The last question on the screen: a text field then offers a Done button to close the keyboard. */
+  isLast?: boolean;
 }
 
 /** AnswerInput renders the right input for a question's type. null always means skip. */
-export function AnswerInput({ question, value, onChange, optionUsage }: Props) {
+export function AnswerInput({ question, value, onChange, optionUsage, isLast }: Props) {
   switch (question.type) {
     case 'scale':
       return <ScaleInput question={question} value={value as number | null} onChange={onChange} />;
@@ -27,7 +29,7 @@ export function AnswerInput({ question, value, onChange, optionUsage }: Props) {
     case 'yesno':
       return <YesNoInput value={value as boolean | null} onChange={onChange} />;
     case 'text':
-      return <TextAnswerInput question={question} value={value as string | null} onChange={onChange} />;
+      return <TextAnswerInput question={question} value={value as string | null} onChange={onChange} showDone={isLast} />;
     case 'checkboxes':
       return <CheckboxesInput question={question} value={value as string[] | null} onChange={onChange} optionUsage={optionUsage} />;
     case 'choice':

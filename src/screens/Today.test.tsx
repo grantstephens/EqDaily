@@ -179,3 +179,22 @@ describe('pending text edit when changing day', () => {
     expect((await h.store.getAnswers('2026-10-04')).map((a) => a.value)).toEqual(['existing yesterday']);
   });
 });
+
+describe('Done button for the keyboard', () => {
+  const note = (label: string): NewQuestion => ({ label, type: 'text', config: { multiline: true, showFrequent: false }, hideFromInsights: false });
+
+  test('only a text field that is the last question offers Done', async () => {
+    await open(async (x) => { await x.store.addQuestion(note('First')); await x.store.addQuestion(note('Last')); });
+    const [first, last] = await screen.findAllByTestId('text-input');
+    await fireEvent(first, 'focus');
+    expect(screen.queryByTestId('text-done')).toBeNull();
+    await fireEvent(last, 'focus');
+    expect(screen.getByTestId('text-done')).toBeTruthy();
+  });
+
+  test('a text question followed by another question has no Done', async () => {
+    await open(async (x) => { await x.store.addQuestion(note('Notes')); await x.store.addQuestion(yes); });
+    await fireEvent(await screen.findByTestId('text-input'), 'focus');
+    expect(screen.queryByTestId('text-done')).toBeNull();
+  });
+});

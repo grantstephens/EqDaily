@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { TextInput } from 'react-native-paper';
+import { Keyboard, View } from 'react-native';
+import { Button, TextInput } from 'react-native-paper';
 
-import { View } from 'react-native';
+import { touchButton } from '../touch';
 import { FIELD_MAX_HEIGHT } from '../../domain/keyboardScroll';
 import { MAX_TEXT, type Question } from '../../domain/question';
 import { useAutosize } from '../../platform/autosize';
@@ -10,6 +11,8 @@ type Props = {
   question: Extract<Question, { type: 'text' }>;
   value: string | null;
   onChange: (value: string | null) => void;
+  /** Offer a Done button while focused (for the last field, where nothing else closes the keyboard). */
+  showDone?: boolean;
 };
 
 const IDLE_MS = 800;
@@ -19,7 +22,8 @@ const IDLE_MS = 800;
  * autosave does not write on every keystroke, and flushes on unmount so
  * leaving the screen mid-sentence loses nothing.
  */
-export function TextAnswerInput({ question, value, onChange }: Props) {
+export function TextAnswerInput({ question, value, onChange, showDone }: Props) {
+  const [focused, setFocused] = useState(false);
   const [draft, setDraft] = useState(value ?? '');
   const wrap = useRef<View>(null);
   const draftRef = useRef(draft);
@@ -71,8 +75,12 @@ export function TextAnswerInput({ question, value, onChange }: Props) {
         maxLength={MAX_TEXT}
         value={draft}
         onChangeText={change}
-        onBlur={commit}
+        onFocus={() => setFocused(true)}
+        onBlur={() => { setFocused(false); commit(); }}
       />
+      {showDone && focused && (
+        <Button testID="text-done" {...touchButton} style={[touchButton.style, { alignSelf: 'flex-end' }]} onPress={() => Keyboard.dismiss()}>Done</Button>
+      )}
     </View>
   );
 }

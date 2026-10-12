@@ -64,3 +64,10 @@ test('stops listening when it unmounts', async () => {
   expect(removes.length).toBeGreaterThan(0);
   for (const r of removes) expect(r).toHaveBeenCalled();
 });
+
+test('dragging the list closes the keyboard, and a caller can still override that', async () => {
+  const { rerender } = await render(<KeyboardAwareScroll testID="ks"><Text>hi</Text></KeyboardAwareScroll>);
+  expect(screen.getByTestId('ks').props.keyboardDismissMode).toBe('on-drag');
+  await rerender(<KeyboardAwareScroll testID="ks" keyboardDismissMode="none"><Text>hi</Text></KeyboardAwareScroll>);
+  expect(screen.getByTestId('ks').props.keyboardDismissMode).toBe('none');
+});

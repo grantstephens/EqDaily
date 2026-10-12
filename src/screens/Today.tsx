@@ -123,7 +123,7 @@ export function TodayScreen() {
       {totalQuestions > 0 && questions.length === 0 && (
         <Text>All your questions are archived. Restore one in Settings → Questions.</Text>
       )}
-      {questions.map((q) => (
+      {questions.map((q, i) => (
         // Keyed by date too, so a pending text edit flushes into the day it was typed on.
         <Card key={`${date}:${q.id}`}>
           <Card.Content style={{ gap: 8 }}>
@@ -133,6 +133,7 @@ export function TodayScreen() {
               value={answers.get(q.id) ?? null}
               onChange={(v) => save(date, q, v)}
               optionUsage={usage[q.id] ?? []}
+              isLast={i === questions.length - 1}
             />
           </Card.Content>
         </Card>
