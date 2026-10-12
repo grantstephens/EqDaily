@@ -1,0 +1,1 @@
+First stable release. Offline daily check-in with questions you choose: sliders, numbers, yes/no, text, checkboxes, choices and times. Insights with streaks, a weekly summary, patterns and a calendar heatmap. Backup and restore as a zip of CSV files. No account, no network, no permissions.
