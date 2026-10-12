@@ -9,7 +9,7 @@
 //
 // See plugins/reproducible-builds.gradle for what it does and why.
 
-const { withAppBuildGradle } = require('expo/config-plugins');
+const { withAppBuildGradle, withGradleProperties } = require('expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
@@ -17,7 +17,20 @@ const SCRIPT_NAME = 'reproducible-builds.gradle';
 const APPLY_LINE = `apply from: rootProject.file('${SCRIPT_NAME}')`;
 const ANCHOR = 'apply plugin: "com.facebook.react"';
 
+// @react-native-community/datetimepicker hardcodes kotlinOptions.jvmTarget =
+// '17' while its Java side follows the JDK 21 the release and F-Droid builds
+// use (RN's gradle-plugin is patched 17 -> 21), and Kotlin's default
+// validation fails the build on that mismatch. Downgrading it to a warning is
+// safe: the bytecode is desugared by D8 either way. Set here, not in the
+// F-Droid recipe, so release.yml, F-Droid and local prebuilds stay identical.
+const KOTLIN_VALIDATION = { type: 'property', key: 'kotlin.jvm.target.validation.mode', value: 'warning' };
+
 module.exports = function withReproducibleBuilds(config) {
+  config = withGradleProperties(config, (mod) => {
+    mod.modResults = mod.modResults.filter((i) => !(i.type === 'property' && i.key === KOTLIN_VALIDATION.key));
+    mod.modResults.push(KOTLIN_VALIDATION);
+    return mod;
+  });
   return withAppBuildGradle(config, (mod) => {
     if (mod.modResults.language !== 'groovy') {
       throw new Error(`withReproducibleBuilds: expected groovy, got ${mod.modResults.language}`);
