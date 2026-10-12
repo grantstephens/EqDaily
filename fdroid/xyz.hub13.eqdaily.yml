@@ -4,17 +4,6 @@
 # ReminDiary's fdroid/xyz.hub13.remindiary.yml for the CI-verified reasoning:
 # ABI split, reproducible-build root causes, zipalign, buildFromSource).
 # Keep this copy in sync with whatever is actually pushed.
-#
-# BEFORE SUBMITTING, fill in every <PLACEHOLDER>:
-#   <VERSION_NAME> / <VERSION_CODE>  from fdroid-version.txt (written by
-#                                    `make prepare-release`). <VERSION_CODE> is
-#                                    the BASE code; the trailing 1 / 2 written
-#                                    after it is the ABI split (base*10+1 for
-#                                    armeabi-v7a, base*10+2 for arm64-v8a)
-#   <COMMIT>                         the tagged commit that carries
-#                                    fdroid-version.txt and the changelogs
-#   <SIGNING_KEY_SHA256>             apksigner verify --print-certs on a
-#                                    PUBLISHED release APK (no private key needed)
 
 Categories:
   - Habit Tracker   # "Mental Health" (mood tracker) is the other plausible fit
@@ -35,9 +24,9 @@ RepoType: git
 Repo: https://github.com/grantstephens/EqDaily.git
 
 Builds:
-  - versionName: <VERSION_NAME>
-    versionCode: <VERSION_CODE>1
-    commit: <COMMIT>
+  - versionName: 1.0.0
+    versionCode: 100009991
+    commit: 3ee1b48acb648ae159443f869ded56f1b19ff6a8
     sudo:
       - echo "deb http://deb.debian.org/debian forky main" > /etc/apt/sources.list.d/forky.list
       - apt-get update
@@ -81,9 +70,9 @@ Builds:
       - $$reproducible-apk-tools$$/zipalign.py --page-size 16 --pad-like-apksigner
         --replace unaligned.apk $$OUT$$
 
-  - versionName: <VERSION_NAME>
-    versionCode: <VERSION_CODE>2
-    commit: <COMMIT>
+  - versionName: 1.0.0
+    versionCode: 100009992
+    commit: 3ee1b48acb648ae159443f869ded56f1b19ff6a8
     sudo:
       - echo "deb http://deb.debian.org/debian forky main" > /etc/apt/sources.list.d/forky.list
       - apt-get update
@@ -127,7 +116,7 @@ Builds:
       - $$reproducible-apk-tools$$/zipalign.py --page-size 16 --pad-like-apksigner
         --replace unaligned.apk $$OUT$$
 
-AllowedAPKSigningKeys: <SIGNING_KEY_SHA256>
+AllowedAPKSigningKeys: 9e81d2765f87661d5b4d3a9381f28a43ea4cc7d55df30414f201c198acd5af04
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9]+\.[0-9]+\.[0-9]+$
@@ -135,5 +124,5 @@ VercodeOperation:
   - '%c * 10 + 1'
   - '%c * 10 + 2'
 UpdateCheckData: fdroid-version.txt|versionCode=([0-9]+)|.|versionName=(.+)
-CurrentVersion: <VERSION_NAME>
-CurrentVersionCode: <VERSION_CODE>2
+CurrentVersion: 1.0.0
+CurrentVersionCode: 100009992
