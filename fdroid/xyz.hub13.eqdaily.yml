@@ -36,7 +36,8 @@ Builds:
       - export EXPO_NO_TELEMETRY=1
       - npm ci
     output: android/app/build/outputs/apk/release/*.apk
-    binary: https://github.com/grantstephens/EqDaily/releases/download/v%v/eqdaily-v%v-armeabi-v7a.apk
+    binary: 
+      https://github.com/grantstephens/EqDaily/releases/download/v%v/eqdaily-v%v-armeabi-v7a.apk
     srclibs:
       - reproducible-apk-tools@v0.3.0
     prebuild:
@@ -50,14 +51,18 @@ Builds:
         node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/utils/JdkConfiguratorUtils.kt
       - sed -i -e '/signingConfig /d' android/app/build.gradle
       - printf '\norg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=2g\n' >> android/gradle.properties
-    # TODO: EqDaily has two native modules ReminDiary lacks
-    # (@react-native-community/datetimepicker, react-native-svg). If the
-    # scanner flags their build.gradle files, add them here - only after a
-    # real `fdroid scanner` / CI run says so.
+    # react-native-svg's android/build.gradle must be scanignore'd like
+    # screens/safe-area-context: otherwise fdroidserver's scanner rewrites it
+    # ("Removing unknown maven repo '$rootDir/../node_modules/react-native/android'"),
+    # its native codegen lib (libreact_codegen_rnsvg.so) never gets built, and
+    # the reproducible-build comparison against the GitHub APK fails (found
+    # via the first MR pipeline: libappmodules.so/dex differed and
+    # libreact_codegen_rnsvg.so was missing from F-Droid's build).
     scanignore:
       - node_modules/hermes-compiler/hermesc/linux64-bin/hermesc
       - node_modules/react-native-screens/android/build.gradle
       - node_modules/react-native-safe-area-context/android/build.gradle
+      - node_modules/react-native-svg/android/build.gradle
       - node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle
       - node_modules/react-native/ReactAndroid/publish.gradle
     scandelete:
@@ -82,7 +87,8 @@ Builds:
       - export EXPO_NO_TELEMETRY=1
       - npm ci
     output: android/app/build/outputs/apk/release/*.apk
-    binary: https://github.com/grantstephens/EqDaily/releases/download/v%v/eqdaily-v%v-arm64-v8a.apk
+    binary: 
+      https://github.com/grantstephens/EqDaily/releases/download/v%v/eqdaily-v%v-arm64-v8a.apk
     srclibs:
       - reproducible-apk-tools@v0.3.0
     prebuild:
@@ -96,14 +102,18 @@ Builds:
         node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/utils/JdkConfiguratorUtils.kt
       - sed -i -e '/signingConfig /d' android/app/build.gradle
       - printf '\norg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=2g\n' >> android/gradle.properties
-    # TODO: EqDaily has two native modules ReminDiary lacks
-    # (@react-native-community/datetimepicker, react-native-svg). If the
-    # scanner flags their build.gradle files, add them here - only after a
-    # real `fdroid scanner` / CI run says so.
+    # react-native-svg's android/build.gradle must be scanignore'd like
+    # screens/safe-area-context: otherwise fdroidserver's scanner rewrites it
+    # ("Removing unknown maven repo '$rootDir/../node_modules/react-native/android'"),
+    # its native codegen lib (libreact_codegen_rnsvg.so) never gets built, and
+    # the reproducible-build comparison against the GitHub APK fails (found
+    # via the first MR pipeline: libappmodules.so/dex differed and
+    # libreact_codegen_rnsvg.so was missing from F-Droid's build).
     scanignore:
       - node_modules/hermes-compiler/hermesc/linux64-bin/hermesc
       - node_modules/react-native-screens/android/build.gradle
       - node_modules/react-native-safe-area-context/android/build.gradle
+      - node_modules/react-native-svg/android/build.gradle
       - node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle
       - node_modules/react-native/ReactAndroid/publish.gradle
     scandelete:
