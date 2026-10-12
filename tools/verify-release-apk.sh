@@ -4,13 +4,18 @@
 # not just output - a silent regression here ships a broken, over-permissioned
 # or wrongly-signed build.
 #
-# Usage: verify-release-apk.sh <apk> <expected-versioncode>
+# Usage: verify-release-apk.sh <apk> <expected-versioncode> [expected-native-code]
+#
+# expected-native-code, if given, must match aapt's native-code line exactly,
+# e.g. "'armeabi-v7a'" for a single-ABI split APK. Omit it for the universal
+# APK, which legitimately carries every ABI.
 # Expects RUNNER_TEMP, KS_PASS and KEY_ALIAS in the environment (the keystore
 # is read from $RUNNER_TEMP/keystore.jks), matching release.yml.
 set -euo pipefail
 
 APK="$1"
 EXPECTED_CODE="$2"
+EXPECTED_NATIVE_CODE="${3:-}"
 
 apksigner verify --print-certs "$APK"
 
@@ -48,4 +53,12 @@ KS_FPR=$(keytool -list -v -keystore "$RUNNER_TEMP/keystore.jks" \
   echo "keystore:  $KS_FPR"
   exit 1; }
 
-aapt dump badging "$APK" | grep -E '^package|native-code'
+aapt dump badging "$APK" | grep -E '^package'
+
+NATIVE_CODE=$(aapt dump badging "$APK" | sed -n "s/^native-code: //p")
+echo "native-code: $NATIVE_CODE"
+if [ -n "$EXPECTED_NATIVE_CODE" ]; then
+  [ "$NATIVE_CODE" = "$EXPECTED_NATIVE_CODE" ] || {
+    echo "::error::native-code was [$NATIVE_CODE], expected [$EXPECTED_NATIVE_CODE]"
+    exit 1; }
+fi

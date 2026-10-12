@@ -1,0 +1,13 @@
+EqDaily is an offline daily check-in where you decide the questions. Answer them once a day, then see how your mood, habits and symptoms move over time.
+
+Everything stays on your device. There is no account, no sync, no network access and no Android permissions at all. Export a backup any time and your data stays yours.
+
+* Your own questions: slider, number, yes/no, text, checkboxes, single choice and time
+* One quick card per question, saved as you answer; step back a day to fill in a gap
+* Skipped is not "no": a question you leave alone is never counted in any statistic
+* Insights over 7, 30, 90 days or all time, each showing "n of m days answered"
+* Streaks, a weekly summary and a calendar heatmap
+* Patterns: gentle hints such as how your mood differs on days you were short on sleep
+* A first-launch guide with suggested starter questions
+* Backup and restore as a plain zip of CSV files, so your data is never locked in
+* Light and dark themes, following the system

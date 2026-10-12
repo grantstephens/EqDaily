@@ -8,6 +8,13 @@ permissions. Export a backup any time and your data stays yours.
 
 Built with [React Native](https://reactnative.dev) (Expo), targeting Android and the web.
 
+<p>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1-today.png" width="200" alt="Today screen with a card per question">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2-insights.png" width="200" alt="Insights with a streak summary, patterns, a mood chart and a calendar heatmap">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3-insights-more.png" width="200" alt="Insights for checkbox, choice and time questions">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6-setup-guide.png" width="200" alt="First-launch setup guide suggesting a starter question">
+</p>
+
 ## Using it
 
 Three tabs:
@@ -87,6 +94,14 @@ when the tag has a `-beta`/`-rc` suffix). Install it directly, or point
 
 > Every release must be signed with the *same* key or existing users cannot upgrade without
 > uninstalling — which deletes their answers. Generate it once, back it up, never commit it.
+
+Before tagging, write the release notes to a file and run
+`make prepare-release TAG=v1.0.1 CHANGELOG=path/to/notes.txt`. It commits
+`fdroid-version.txt` and the F-Droid changelogs (`fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`
+for both per-ABI splits), which must exist *in the tagged commit* for F-Droid's update checks.
+Then `git tag v1.0.1 && git push origin main v1.0.1`. The release also publishes per-ABI split
+APKs (`eqdaily-vX-armeabi-v7a.apk`, `-arm64-v8a.apk`): F-Droid's reproducible-build check compares
+its own build against those. The recipe lives in [`fdroid/xyz.hub13.eqdaily.yml`](fdroid/xyz.hub13.eqdaily.yml).
 
 Signing setup (once):
 

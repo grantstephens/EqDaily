@@ -9,7 +9,11 @@
 # 1.0.1-beta.1. Deriving it from the tag rather than a run number keeps it
 # reproducible: rebuilding a tag yields the same versionCode.
 #
-# This is the single source of truth for that arithmetic; release.yml calls it.
+# This is the single source of truth for that arithmetic - shared between
+# release.yml (the real GitHub Release / Obtainium build) and
+# `make prepare-release` (which commits the result into fdroid-version.txt
+# before tagging, so F-Droid's checkupdates can read it without needing
+# arithmetic of its own).
 #
 # Usage: compute-version.sh v1.0.0-beta.6
 # Output (stdout): versionName=1.0.0-beta.6\nversionCode=10000206

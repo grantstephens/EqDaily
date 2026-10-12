@@ -38,7 +38,8 @@
       "expo-sqlite",
       "expo-sharing",
       "expo-asset",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "./plugins/reproducible-builds.js"
     ]
   }
 }
