@@ -1,6 +1,6 @@
 EqDaily is an offline daily check-in where you decide the questions. Answer them once a day, then see how your mood, habits and symptoms move over time.
 
-Everything stays on your device. There is no account, no sync, no network access and no Android permissions at all. Export a backup any time and your data stays yours.
+Everything stays on your device. There is no account and no sync. The only thing that can leave your device is an anonymous count of which screen you opened, and only if you switch that on in Settings (it is off by default). Export a backup any time and your data stays yours.
 
 * Your own questions: slider, number, yes/no, text, checkboxes, single choice and time
 * One quick card per question, saved as you answer; step back a day to fill in a gap

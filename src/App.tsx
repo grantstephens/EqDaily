@@ -3,10 +3,11 @@ import {
   DarkTheme as NavigationDarkTheme,
   DefaultTheme as NavigationDefaultTheme,
   NavigationContainer,
+  createNavigationContainerRef,
 } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -16,6 +17,7 @@ import {
 } from 'react-native-paper';
 
 import type { Store } from './domain/store';
+import { trackScreenView } from './platform/analytics';
 import { InsightsScreen } from './screens/Insights';
 import { SettingsScreen } from './screens/Settings';
 import { TodayScreen } from './screens/Today';
@@ -38,6 +40,7 @@ const { LightTheme: NavLightTheme, DarkTheme: NavDarkTheme } = adaptNavigationTh
 export type TabName = 'Today' | 'Insights' | 'Settings';
 
 const Tab = createBottomTabNavigator();
+const navRef = createNavigationContainerRef<Record<TabName, undefined>>();
 
 const TAB_ICONS: Record<TabName, keyof typeof MaterialCommunityIcons.glyphMap> = {
   Today: 'calendar-check-outline',
@@ -74,6 +77,16 @@ function AppInner() {
   const { theme } = useTheme();
   const [store, setStore] = useState<Store | null>(null);
   const [failure, setFailure] = useState<Error | null>(null);
+  const lastScreen = useRef<string | undefined>(undefined);
+
+  /** Tells the (opt-in) usage counter which tab is showing, once per change. */
+  const reportScreen = () => {
+    const name = navRef.getCurrentRoute()?.name;
+    if (name && name !== lastScreen.current) {
+      lastScreen.current = name;
+      void trackScreenView(name);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -120,7 +133,7 @@ function AppInner() {
     <SafeAreaProvider>
       <StatusBar style={statusBarStyle} />
       <TrackerProvider store={store} now={now}>
-        <NavigationContainer theme={theme.dark ? NavDarkTheme : NavLightTheme}>
+        <NavigationContainer ref={navRef} theme={theme.dark ? NavDarkTheme : NavLightTheme} onReady={reportScreen} onStateChange={reportScreen}>
           <Tabs />
         </NavigationContainer>
       </TrackerProvider>

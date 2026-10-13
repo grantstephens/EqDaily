@@ -8,6 +8,7 @@ import { displayDate, today } from '../domain/date';
 import { notify } from '../platform/confirm';
 import { pickBundle, saveBundle } from '../platform/files';
 import { useTracker } from '../TrackerContext';
+import { getAnalyticsEnabled, setAnalyticsEnabled } from '../platform/analytics';
 import { useTheme } from '../ThemeContext';
 import type { ThemeMode } from '../theme';
 import { QuestionEditorScreen } from './QuestionEditor';
@@ -31,6 +32,13 @@ export function SettingsScreen() {
   const [overwrite, setOverwrite] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
   const [busy, setBusy] = useState(false);
+  const [analytics, setAnalytics] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getAnalyticsEnabled().then((on) => { if (!cancelled) setAnalytics(on); });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,6 +116,21 @@ export function SettingsScreen() {
         <Switch testID="overwrite-switch" value={overwrite} onValueChange={setOverwrite} />
       </View>
       <Button {...touchButton} testID="import-button" mode="contained-tonal" disabled={busy} onPress={doImport}>Import backup</Button>
+
+      <Divider />
+      <Text variant="titleMedium">Privacy</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text style={{ flex: 1 }}>Share anonymous usage</Text>
+        <Switch
+          testID="analytics-switch"
+          accessibilityLabel="Share anonymous usage"
+          value={analytics}
+          onValueChange={(on) => { setAnalytics(on); void setAnalyticsEnabled(on); }}
+        />
+      </View>
+      <Text variant="bodySmall">
+        Off by default. When on, EqDaily tells a self-hosted counter which screen you opened — screen names only. Never your questions, answers or dates, and nothing else leaves your device.
+      </Text>
 
       {Platform.OS !== 'web' && (
         <>

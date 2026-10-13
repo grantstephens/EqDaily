@@ -3,8 +3,9 @@
 A daily check-in for Android and the web where **you** decide the questions. Answer them
 once a day, then see how your mood, habits and symptoms move over time.
 
-Everything lives on your device. No account, no sync, no network access, no Android
-permissions. Export a backup any time and your data stays yours.
+Everything lives on your device. No account, no sync. The only thing that can ever leave it
+is an anonymous "which screen was opened" count, and only if you switch that on in Settings.
+Export a backup any time and your data stays yours.
 
 Built with [React Native](https://reactnative.dev) (Expo), targeting Android and the web.
 
@@ -73,6 +74,14 @@ today"). Import matches questions by label + type, creates any that are missing,
 days you already answered unless **Overwrite** is on, and is all-or-nothing: the whole
 file is validated first and any problem is reported as `answers.csv row 14: …` with
 nothing changed.
+
+## Privacy
+
+Your questions and answers never leave the device. There is one optional exception: Settings →
+Privacy → "Share anonymous usage", **off by default**. When on, EqDaily sends the name of the
+screen you opened (Today, Insights or Settings) and whether you're on web or Android to a
+self-hosted [Umami](https://umami.is) counter. No identifiers, no answers, no dates. This is why
+the Android build declares the `INTERNET` permission, and the only thing it is used for.
 
 ## Development
 

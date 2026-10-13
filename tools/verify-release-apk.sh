@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Verifies a signed release APK before it ships: real signing key, minimum
-# targetSdk, NO declared permissions, and the expected versionCode. Assertions,
+# targetSdk, ONLY the INTERNET permission, and the expected versionCode. Assertions,
 # not just output - a silent regression here ships a broken, over-permissioned
 # or wrongly-signed build.
 #
@@ -23,7 +23,9 @@ TARGET=$(aapt dump badging "$APK" | sed -n "s/.*targetSdkVersion:'\([0-9]*\)'.*/
 echo "targetSdkVersion=$TARGET"
 [ "$TARGET" -ge 35 ] || { echo "::error::targetSdkVersion $TARGET < 35"; exit 1; }
 
-# EqDaily is local-only: it must declare no permissions at all.
+# EqDaily declares exactly one permission, INTERNET, used only by the opt-in,
+# off-by-default screen-view counter (src/platform/analytics.*). Anything else
+# is a regression.
 # DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION is excluded deliberately: it is a
 # self-signature permission AndroidX Core auto-injects to emulate Android 13's
 # RECEIVER_NOT_EXPORTED flag on older API levels - scoped to this app's own
@@ -32,8 +34,8 @@ PERM_LIST=$(aapt dump permissions "$APK" | grep 'uses-permission' \
   | grep -v 'DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION' \
   | sed -n "s/.*name='\([^']*\)'.*/\1/p" | sort || true)
 echo "declared permissions: [${PERM_LIST}]"
-[ -z "$PERM_LIST" ] || {
-  echo "::error::declared permissions were [$PERM_LIST], expected none"
+[ "$PERM_LIST" = "android.permission.INTERNET" ] || {
+  echo "::error::declared permissions were [$PERM_LIST], expected only android.permission.INTERNET"
   exit 1; }
 
 CODE=$(aapt dump badging "$APK" | sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p")

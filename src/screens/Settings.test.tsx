@@ -10,6 +10,11 @@ import { SettingsScreen } from './Settings';
 jest.mock('../platform/files', () => ({ pickBundle: jest.fn(), saveBundle: jest.fn(async (name: string) => name) }));
 jest.mock('../platform/confirm', () => ({ notify: jest.fn(async () => {}), confirm: jest.fn(async () => true) }));
 jest.mock('../platform/onboarding', () => ({ getOnboarded: jest.fn(async () => true), setOnboarded: jest.fn(async () => {}) }));
+const mockAnalytics = { enabled: false };
+jest.mock('../platform/analytics', () => ({
+  getAnalyticsEnabled: jest.fn(async () => mockAnalytics.enabled),
+  setAnalyticsEnabled: jest.fn(async (v: boolean) => { mockAnalytics.enabled = v; }),
+}));
 jest.mock('../platform/themePreference', () => ({ getThemeMode: jest.fn(async () => null), setThemeMode: jest.fn(async () => {}) }));
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -17,6 +22,10 @@ const files = require('../platform/files') as { pickBundle: jest.Mock; saveBundl
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { notify } = require('../platform/confirm') as { notify: jest.Mock };
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const analytics = require('../platform/analytics') as { setAnalyticsEnabled: jest.Mock };
+
+beforeEach(() => { mockAnalytics.enabled = false; analytics.setAnalyticsEnabled.mockClear(); });
 beforeEach(() => { files.pickBundle.mockReset(); files.saveBundle.mockClear(); notify.mockClear(); });
 
 async function openWithData() {
@@ -99,4 +108,26 @@ test('manage questions opens the editor and back returns', async () => {
   await screen.findByTestId('add-question');
   await fireEvent.press(screen.getByTestId('editor-back'));
   await screen.findByTestId('manage-questions');
+});
+
+describe('anonymous usage sharing', () => {
+  test('is off until you turn it on, and says what is sent', async () => {
+    await openWithData();
+    const sw = await screen.findByTestId('analytics-switch');
+    expect(sw.props.value).toBe(false);
+    expect(screen.getByText(/screen names only/i)).toBeTruthy();
+  });
+
+  test('turning it on is remembered', async () => {
+    await openWithData();
+    await fireEvent(await screen.findByTestId('analytics-switch'), 'valueChange', true);
+    expect(analytics.setAnalyticsEnabled).toHaveBeenCalledWith(true);
+    expect(screen.getByTestId('analytics-switch').props.value).toBe(true);
+  });
+
+  test('shows the saved choice when you come back', async () => {
+    mockAnalytics.enabled = true;
+    await openWithData();
+    await waitFor(() => expect(screen.getByTestId('analytics-switch').props.value).toBe(true));
+  });
 });
