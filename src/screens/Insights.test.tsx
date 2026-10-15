@@ -204,9 +204,10 @@ test('the strip shows the current and best streak, days logged this week, and wh
   const h = await seededStreak();
   await render(h.wrap(<InsightsScreen />));
   expect(await screen.findByTestId('streak-current')).toHaveTextContent(/5-day streak/);
-  expect(screen.getByTestId('streak-best')).toHaveTextContent(/best/i);
-  expect(screen.getByTestId('week-logged')).toHaveTextContent(/5 of 7 days logged/);
-  expect(screen.getByTestId('week-logged')).toHaveTextContent(/last week 3 of 3/);
+  expect(screen.getByTestId('streak-best')).toHaveTextContent(/your best/i);
+  expect(screen.getByTestId('week-logged')).toHaveTextContent(/Last 7 days: 5 of 7 days logged/);
+  // only 3 days of history before that, so no "3 of 3" comparison is offered
+  expect(screen.getByTestId('week-logged')).not.toHaveTextContent(/7 days before/);
 });
 
 test('a yes/no card says how many days in a row, only when it is 2 or more', async () => {
@@ -236,7 +237,7 @@ test('a brand-new user is not compared with a week before they started', async (
   await h.store.setAnswer('2026-10-05', mood.id, 7);
   await render(h.wrap(<InsightsScreen />));
   expect(await screen.findByTestId('week-logged')).toHaveTextContent(/1 of 1 days? logged/);
-  expect(screen.getByTestId('week-logged')).not.toHaveTextContent(/last week/);
+  expect(screen.getByTestId('week-logged')).not.toHaveTextContent(/before/);
 });
 
 test('after more than two weeks away the strip does not say "0 of 7 (last week 0)"', async () => {
