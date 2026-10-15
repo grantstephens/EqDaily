@@ -1,0 +1,1 @@
+Clearer streak card on Insights: the weekly line now says "Last 7 days", a partial earlier window is no longer shown as a confusing "3 of 3", and your best streak is not repeated when it is the current one.
