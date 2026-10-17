@@ -36,7 +36,7 @@ test('cards show coverage, averages, % yes, rankings, average time and frequent 
   const h = await seeded();
   await render(h.wrap(<InsightsScreen />));
   await screen.findByText('Mood');
-  expect(screen.getAllByText('3 of 30 days answered').length).toBeGreaterThanOrEqual(3);
+  expect(screen.getAllByText('3 of 5 days answered').length).toBeGreaterThanOrEqual(3);
   expect(screen.getByText('6.0')).toBeTruthy();
   expect(screen.getByText('67% yes')).toBeTruthy();
   expect(screen.getByText('2 · 67%')).toBeTruthy();
@@ -50,7 +50,7 @@ test('switching to 7 days changes the denominator', async () => {
   await render(h.wrap(<InsightsScreen />));
   await screen.findByText('Mood');
   await fireEvent.press(screen.getByTestId('range-7'));
-  await screen.findAllByText('3 of 7 days answered');
+  await screen.findAllByText('3 of 5 days answered');
 });
 
 test('with nothing answered the empty state shows', async () => {
@@ -113,10 +113,10 @@ test('left open past midnight, the window moves on without a foreground event', 
     await h.store.setAnswer('2026-10-06', m.id, 5);
     await h.store.setAnswer('2026-10-05', m.id, 5);
     await render(h.wrap(<InsightsScreen />));
-    await screen.findByText('1 of 30 days answered');
+    await screen.findByText('1 of 1 days answered');
     clock = new Date(2026, 9, 6, 0, 2);
     await act(async () => { jest.advanceTimersByTime(61000); });
-    await screen.findByText('2 of 30 days answered');
+    await screen.findByText('2 of 2 days answered');
   } finally {
     jest.useRealTimers();
   }
@@ -142,7 +142,7 @@ test('Patterns card states a finding in plain English, with the charts still bel
   const finding = await screen.findByTestId('pattern-0');
   expect(finding).toHaveTextContent(/Exercise was Yes, Mood averages/);
   expect(screen.getByTestId('patterns-note')).toHaveTextContent('Patterns are hints, not proof.');
-  expect(screen.getAllByText(/of 30 days answered/).length).toBe(2); // both existing cards still render
+  expect(screen.getAllByText(/days answered/).length).toBe(2); // both existing cards still render
 });
 
 test('with only a few days of data the card asks the user to keep logging', async () => {
@@ -255,7 +255,7 @@ test('yes/no and slider cards get a heatmap on a 30-day range, with the existing
   await screen.findAllByTestId('heatmap');
   expect(screen.getAllByTestId('heatmap')).toHaveLength(2); // Mood (slider) and Exercise (yes/no)
   expect(screen.getAllByTestId('heat-2026-10-05')[0]!.props.accessibilityLabel).toMatch(/Mon 5 Oct 2026: /); // one per heatmap
-  expect(screen.getAllByText(/of 30 days answered/)).toHaveLength(2); // cards unchanged
+  expect(screen.getAllByText(/days answered/)).toHaveLength(2); // cards unchanged
 });
 
 test('a 7-day range has no heatmap', async () => {
@@ -263,7 +263,7 @@ test('a 7-day range has no heatmap', async () => {
   await render(h.wrap(<InsightsScreen />));
   await screen.findAllByTestId('heatmap');
   await fireEvent.press(screen.getByTestId('range-7'));
-  await screen.findAllByText(/of 7 days answered/);
+  await screen.findAllByText(/days answered/);
   expect(screen.queryByTestId('heatmap')).toBeNull();
 });
 
@@ -299,7 +299,15 @@ test('the selected range is spoken as selected, and that follows the choice', as
   expect(screen.getByTestId('range-30').props.accessibilityLabel).toBe('30 days, selected');
   expect(screen.getByTestId('range-7').props.accessibilityLabel).toBe('7 days');
   await fireEvent.press(screen.getByTestId('range-7'));
-  await screen.findAllByText('3 of 7 days answered');
+  await screen.findAllByText('3 of 5 days answered');
   expect(screen.getByTestId('range-7').props.accessibilityLabel).toBe('7 days, selected');
   expect(screen.getByTestId('range-30').props.accessibilityLabel).toBe('30 days');
+});
+
+test('a new user is not told they missed days from before they started', async () => {
+  const h = await makeHarness(); // now = 2026-10-05, 30 day range
+  const note = await h.store.addQuestion(q('Thankful', 'text', { multiline: false, showFrequent: false }));
+  for (let i = 0; i < 12; i++) await h.store.setAnswer(addDays('2026-10-05', -i), note.id, `day ${i}`);
+  await render(h.wrap(<InsightsScreen />));
+  expect(await screen.findByText('12 of 12 days answered')).toBeTruthy();
 });

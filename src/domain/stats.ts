@@ -72,15 +72,18 @@ function counted(map: Map<string, number>, denominator: number): Counted[] {
  * summarize reduces one question's answers over a window to what Insights
  * shows. Skipped days are absent from every statistic; they only lower
  * coverage. answers/previous may hold other questions' rows and other dates.
+ * `since` is the day the user started: earlier days were not missed, so they
+ * stay out of coverage's total.
  */
 export function summarize(
   q: Question, answers: Answer[], dates: JournalDate[], previous: Answer[], previousWindow: JournalDate[] = [],
+  since: JournalDate | null = null,
 ): Summary {
   const inWindow = new Set(dates);
   const mine = answers.filter((x) => x.questionId === q.id && inWindow.has(x.date))
     .sort((a, b) => (a.date < b.date ? -1 : 1));
   const prevSet = new Set(previousWindow);
-  const coverage: Coverage = { answered: mine.length, total: dates.length };
+  const coverage: Coverage = { answered: mine.length, total: since === null ? dates.length : dates.filter((d) => d >= since).length };
 
   switch (q.type) {
     case 'scale':

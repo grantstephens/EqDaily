@@ -44,7 +44,7 @@ export function InsightsScreen() {
         const allDates = rangeDates(end, 'all', first);
         const from = prev[0] ?? dates[0]!;
         const answers = await store.answersBetween(first !== null && first < from ? first : from, end);
-        const cards = questions.map((question) => ({ question, summary: summarize(question, answers, dates, answers, prev) }));
+        const cards = questions.map((question) => ({ question, summary: summarize(question, answers, dates, answers, prev, first) }));
         const patterns = findPatternsWithFallback(questions, answers, dates, allDates);
         const loggedDays = answers.map((x) => x.date);
         const streak = { current: currentStreak(loggedDays, end), best: longestStreak(loggedDays) };

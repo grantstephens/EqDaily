@@ -32,6 +32,21 @@ describe('rangeDates / previousDates', () => {
   });
 });
 
+describe('coverage before you started', () => {
+  test('days before the first answer are not counted as missed', () => {
+    const s = summarize(mood, [a(mood, D[2]!, 4), a(mood, D[3]!, 8)], D, [], [], D[2]!);
+    expect(s).toMatchObject({ coverage: { answered: 2, total: 2 } });
+  });
+  test('without a start date the whole window counts', () => {
+    const s = summarize(mood, [a(mood, D[2]!, 4)], D, []);
+    expect(s).toMatchObject({ coverage: { answered: 1, total: 4 } });
+  });
+  test('a start date before the window changes nothing', () => {
+    const s = summarize(mood, [a(mood, D[2]!, 4)], D, [], [], '2026-09-01');
+    expect(s).toMatchObject({ coverage: { answered: 1, total: 4 } });
+  });
+});
+
 describe('numeric', () => {
   test('average over answered days only; coverage counts skips', () => {
     const s = summarize(mood, [a(mood, D[0]!, 4), a(mood, D[2]!, 8)], D, []);
