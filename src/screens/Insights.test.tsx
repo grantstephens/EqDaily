@@ -311,3 +311,13 @@ test('a new user is not told they missed days from before they started', async (
   await render(h.wrap(<InsightsScreen />));
   expect(await screen.findByText('12 of 12 days answered')).toBeTruthy();
 });
+
+test('the heatmap starts on your first day, so days before it are not reported as skipped', async () => {
+  const h = await makeHarness(); // now = 2026-10-05, 30 day range
+  const ex = await h.store.addQuestion(q('Exercise', 'yesno', {}));
+  for (let i = 0; i < 12; i++) await h.store.setAnswer(addDays('2026-10-05', -i), ex.id, true);
+  await render(h.wrap(<InsightsScreen />));
+  const map = await screen.findByTestId('heatmap');
+  expect(map.props.accessibilityLabel).toBe('Calendar of 12 days: 12 yes, 0 no, 0 skipped');
+  expect(screen.queryByTestId('heat-2026-09-10')).toBeNull();
+});

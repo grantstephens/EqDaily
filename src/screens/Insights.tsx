@@ -31,7 +31,7 @@ export function InsightsScreen() {
   const { store, now, revision } = useTracker();
   const end = useToday(now);
   const [range, setRange] = useState<RangeChoice>(30);
-  const [state, setState] = useState<{ cards: CardData[]; dates: JournalDate[]; empty: boolean; patterns: PatternsResult; streak: { current: number; best: number }; week: WeeklySummary; yes: Map<number, number> } | null>(null);
+  const [state, setState] = useState<{ cards: CardData[]; dates: JournalDate[]; empty: boolean; first: JournalDate | null; patterns: PatternsResult; streak: { current: number; best: number }; week: WeeklySummary; yes: Map<number, number> } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,7 +55,7 @@ export function InsightsScreen() {
           const values = new Map(answers.filter((x) => x.questionId === question.id).map((x) => [x.date, x.value === true] as const));
           yes.set(question.id, yesStreak(values, end));
         }
-        if (!cancelled) setState({ cards, dates, empty: questions.length === 0 || first === null, patterns, streak, week, yes });
+        if (!cancelled) setState({ cards, dates, empty: questions.length === 0 || first === null, first, patterns, streak, week, yes });
       } catch (e) {
         await notify('Could not load Insights', e instanceof Error ? e.message : String(e));
       }
@@ -83,7 +83,7 @@ export function InsightsScreen() {
       {state && !state.empty && <StatsStrip streak={state.streak} week={state.week} />}
       {state && !state.empty && <PatternsCard result={state.patterns} />}
       {state && !state.empty && state.cards.map((c) => (
-        <InsightCard key={c.question.id} question={c.question} summary={c.summary} dates={state.dates} yesStreak={state.yes.get(c.question.id)} />
+        <InsightCard key={c.question.id} question={c.question} summary={c.summary} dates={state.dates} yesStreak={state.yes.get(c.question.id)} since={state.first} />
       ))}
     </ScrollView>
   );

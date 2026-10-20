@@ -11,9 +11,11 @@ import { Heatmap } from '../charts/Heatmap';
 import { HEATMAP_MIN_DAYS } from '../charts/heatmapGeometry';
 import { LineChart } from '../charts/LineChart';
 
-interface Props { question: Question; summary: Summary; dates: string[]; yesStreak?: number }
+interface Props { question: Question; summary: Summary; dates: string[]; yesStreak?: number; since?: string | null }
 
-function Body({ summary, dates, yesStreak, isScale }: { summary: Summary; dates: string[]; yesStreak?: number; isScale?: boolean }) {
+function Body({ summary, dates, yesStreak, isScale, since }: { summary: Summary; dates: string[]; yesStreak?: number; isScale?: boolean; since?: string | null }) {
+  // The calendar starts on your first day: earlier days were not skipped, you were not here yet.
+  const calendar = since ? dates.filter((d) => d >= since) : dates;
   switch (summary.kind) {
     case 'numeric': {
       const { average, change, unit, points, axisMin, axisMax } = summary;
@@ -28,7 +30,7 @@ function Body({ summary, dates, yesStreak, isScale }: { summary: Summary; dates:
           </View>
           <LineChart points={points} dates={dates} axisMin={axisMin} axisMax={axisMax} />
           {isScale && dates.length >= HEATMAP_MIN_DAYS && (
-            <Heatmap dates={dates} mode="scale" min={axisMin} max={axisMax} values={new Map(points.map((p) => [p.date, p.value]))} />
+            <Heatmap dates={calendar} mode="scale" min={axisMin} max={axisMax} values={new Map(points.map((p) => [p.date, p.value]))} />
           )}
         </View>
       );
@@ -51,7 +53,7 @@ function Body({ summary, dates, yesStreak, isScale }: { summary: Summary; dates:
           {yesStreak !== undefined && yesStreak >= 2 && <Text testID="yes-streak">{`${yesStreak} days in a row`}</Text>}
           <DotStrip days={summary.days} />
           {dates.length >= HEATMAP_MIN_DAYS && (
-            <Heatmap dates={dates} mode="yesno" values={new Map(summary.days.filter((d) => d.value !== null).map((d) => [d.date, d.value as boolean]))} />
+            <Heatmap dates={calendar} mode="yesno" values={new Map(summary.days.filter((d) => d.value !== null).map((d) => [d.date, d.value as boolean]))} />
           )}
         </View>
       );
@@ -78,14 +80,14 @@ function Body({ summary, dates, yesStreak, isScale }: { summary: Summary; dates:
 }
 
 /** One Insights card: coverage line, then a body shaped by the question type. */
-export function InsightCard({ question, summary, dates, yesStreak }: Props) {
+export function InsightCard({ question, summary, dates, yesStreak, since }: Props) {
   const { answered, total } = summary.coverage;
   return (
     <Card>
       <Card.Content style={{ gap: 8 }}>
         <Text variant="titleMedium">{question.label}</Text>
         <Text variant="labelSmall">{`${answered} of ${total} days answered`}</Text>
-        {answered === 0 ? <Text>No answers in this period.</Text> : <Body summary={summary} dates={dates} yesStreak={yesStreak} isScale={question.type === 'scale'} />}
+        {answered === 0 ? <Text>No answers in this period.</Text> : <Body summary={summary} dates={dates} yesStreak={yesStreak} since={since} isScale={question.type === 'scale'} />}
       </Card.Content>
     </Card>
   );
