@@ -1,0 +1,1 @@
+Insights no longer says you missed days from before you started: "12 of 12 days answered" instead of "12 of 30", and the calendar heatmap begins on your first day.
