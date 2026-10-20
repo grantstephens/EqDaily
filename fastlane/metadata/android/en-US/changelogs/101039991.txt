@@ -1,0 +1,1 @@
+Fix: Insights (and the answer count in Settings) now update as soon as you fill in answers on Today, instead of showing the old numbers until you restart the app.
