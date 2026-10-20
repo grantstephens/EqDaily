@@ -51,3 +51,17 @@ test('reports each screen once as you move between tabs', async () => {
   await fireEvent.press(screen.getByTestId('tab-Insights')); // same tab again
   expect(trackScreenView.mock.calls.map((c) => c[0])).toEqual(['Today', 'Insights']);
 });
+
+test('answers filled in on Today show up on Insights without restarting', async () => {
+  const store = await SqliteStore.open(openNodeSqlite(':memory:'));
+  await store.addQuestion({ label: 'Exercise', type: 'yesno', config: {} as never, hideFromInsights: false });
+  openStore.mockResolvedValue(store);
+  await render(<App />);
+  await screen.findByText('Exercise');
+  await fireEvent.press(screen.getByTestId('tab-Insights'));
+  await screen.findByText(/Nothing to show yet/);
+  await fireEvent.press(screen.getByTestId('tab-Today'));
+  await fireEvent.press(await screen.findByTestId('yesno-yes'));
+  await fireEvent.press(screen.getByTestId('tab-Insights'));
+  await screen.findByText(/1 of 1 days? answered/);
+});

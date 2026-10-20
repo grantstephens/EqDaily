@@ -28,7 +28,7 @@ const RANGES: { value: string; label: string; spoken: string; choice: RangeChoic
 
 /** Insights: per-question graphs and summaries over a chosen window. */
 export function InsightsScreen() {
-  const { store, now, revision } = useTracker();
+  const { store, now, revision, answersVersion } = useTracker();
   const end = useToday(now);
   const [range, setRange] = useState<RangeChoice>(30);
   const [state, setState] = useState<{ cards: CardData[]; dates: JournalDate[]; empty: boolean; first: JournalDate | null; patterns: PatternsResult; streak: { current: number; best: number }; week: WeeklySummary; yes: Map<number, number> } | null>(null);
@@ -61,7 +61,7 @@ export function InsightsScreen() {
       }
     })();
     return () => { cancelled = true; };
-  }, [store, end, range, revision]);
+  }, [store, end, range, revision, answersVersion]);
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>

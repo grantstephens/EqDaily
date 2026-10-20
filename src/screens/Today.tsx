@@ -23,7 +23,7 @@ const usesOptions = (q: Question) => q.type === 'checkboxes' || q.type === 'choi
  * one cannot be reached.
  */
 export function TodayScreen() {
-  const { store, now, revision } = useTracker();
+  const { store, now, revision, answersChanged } = useTracker();
   const todayDate = useToday(now);
   const [date, setDate] = useState<JournalDate>(todayDate);
   const dateRef = useRef(date);
@@ -95,6 +95,7 @@ export function TodayScreen() {
     }
     try {
       await store.setAnswer(d, q.id, value);
+      answersChanged();
       if (usesOptions(q)) {
         const options = await store.options(q.id);
         setUsage((u) => ({ ...u, [q.id]: options }));

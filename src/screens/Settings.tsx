@@ -26,7 +26,7 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 interface Stats { questions: number; answers: number; since: string | null }
 
 export function SettingsScreen() {
-  const { store, now, revision, bump } = useTracker();
+  const { store, now, revision, bump, answersVersion } = useTracker();
   const { mode, setMode } = useTheme();
   const [editing, setEditing] = useState(false);
   const [overwrite, setOverwrite] = useState(false);
@@ -54,7 +54,7 @@ export function SettingsScreen() {
       }
     })();
     return () => { cancelled = true; };
-  }, [store, revision, editing]);
+  }, [store, revision, editing, answersVersion]);
 
   const doExport = async () => {
     setBusy(true);
